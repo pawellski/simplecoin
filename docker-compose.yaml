@@ -1,0 +1,34 @@
+version: "3"
+services:
+  node-1:
+    build:
+     context: .
+     dockerfile: ./Docker/node1/Dockerfile
+    ports: ["8081:8881"]
+    volumes: [./app:/app]
+    environment:
+      FLASK_DEBUG: 1
+  node-2:
+    build:
+     context: .
+     dockerfile: ./Docker/node2/Dockerfile
+    ports: ["8082:8882"]
+    volumes: [./app:/app]
+    environment:
+      FLASK_DEBUG: 1
+  node-3:
+    build:
+     context: .
+     dockerfile: ./Docker/node3/Dockerfile
+    ports: ["8083:8883"]
+    volumes: [./app:/app]
+    environment:
+      FLASK_DEBUG: 1
+  node-4:
+    build:
+     context: .
+     dockerfile: ./Docker/node4/Dockerfile
+    ports: ["8084:8884"]
+    volumes: [./app:/app]
+    environment:
+      FLASK_DEBUG: 1
