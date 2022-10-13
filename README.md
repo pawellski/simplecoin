@@ -64,6 +64,12 @@ The message generator was implemented in *message_generator.py* file. It generat
 
     content: None
 
+- **stop miner**
+
+  `POST /stop-miner`
+
+    content: None
+
 - **add element to transaction pool**
 
   `POST /update-transaction-pool`
