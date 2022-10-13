@@ -84,3 +84,9 @@ def update_transaction_pool():
 def start_mining():
     message, status = node.start_miner()
     return make_response(message, status)
+
+
+@app.route('/stop-miner', methods=[POST])
+def stop_mining():
+    message, status = node.stop_miner()
+    return make_response(message, status)

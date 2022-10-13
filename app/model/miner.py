@@ -26,6 +26,8 @@ class Miner:
         self.__miner_paused = True
         self.__difficulty_bits = difficulty_bits
         self.__miner_result_queue = Queue()
+        self.__miner_thread = None
+        self.__miner_thread_running = False
 
     def append_transaction(
         self,
@@ -57,9 +59,15 @@ class Miner:
     def start_miner(self):
         self.__log.info("Starting miner thread")
         self.__miner_paused = False
-        miner_thread = Thread(target=self.__start_mining)
-        miner_thread.start()
+        self.__miner_thread_running = True
+        self.__miner_thread = Thread(target=self.__start_mining)
+        self.__miner_thread.start()
         return "Miner sucessfully started"
+
+    def stop_miner(self):
+        self.__stop_miner_process()
+        self.__miner_thread_running = False
+        self.__miner_thread.join()
 
     '''
     Send new candidate to nodes in the network
@@ -139,7 +147,7 @@ class Miner:
     This only controls the execution flow of the miner process
     '''
     def __start_mining(self):
-        while True:
+        while self.__miner_thread_running:
             # Miner currenty paused or has no work to do
             if self.__miner_paused is True or self.__transaction_pool == []:
                 continue
