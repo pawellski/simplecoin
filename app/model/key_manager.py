@@ -51,6 +51,7 @@ class KeyManager:
         kdf = PBKDF2(self.__secret.encode('utf-8'), self.__salt, dkLen=32)
         aes = AES.new(kdf, AES.MODE_ECB)
         self.__priv_key = SigningKey.from_pem(unpad(aes.decrypt(base64.b64decode(keys['priv_key'].encode('utf-8'))), 16).decode('utf-8'))
+        # self.__priv_key = SigningKey.generate()
         self.__log.info(self.__priv_key.to_pem())
         self.__log.info(self.__pub_key.to_pem())
     
@@ -72,6 +73,7 @@ class KeyManager:
             'ip': self.__ip,
             'pub_key': self.__pub_key.to_pem().decode('UTF-8')
         })
+        self.__log.info("init network...")
 
     def get_private_key(self):
         return self.__priv_key
@@ -84,21 +86,22 @@ class KeyManager:
 
     #TODO save to file
     def update_pub_key_list(self, new_pub_key_list):
-        self.__pub_key_list = new_pub_key_list
+        for entry in new_pub_key_list['entries']:
+            if entry in self.__pub_key_list['entries']:
+                continue
+            self.__pub_key_list['entries'].append(entry)
 
-    #TODO save to file
-    def save_new_pub_key(self, new_entry):
-        for el in self.__pub_key_list['entries']:
-    
-            if el == new_entry:
-                return
-        
-            if el['ip'] == new_entry['ip']:
-                el['pub_key'] = new_entry['pub_key']
-                return
-    
-        self.__pub_key_list['entries'].append(new_entry)
+
+    def override_pub_key_list(self, new_pub_key_list):
+        self.__pub_key_list = new_pub_key_list  
     
     #TODO load from file
     def get_pub_key_list(self):
         return self.__pub_key_list
+    
+
+    def get_pub_key_for_ip(self, ip):
+        for entry in self.__pub_key_list['entries']:
+            if entry['ip'] == ip:
+                return entry['pub_key']
+        return None
