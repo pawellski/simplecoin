@@ -6,41 +6,66 @@ services:
      dockerfile: ./Docker/node1/Dockerfile
     ports: ["8081:8881"]
     volumes: [./app:/app]
+    networks:
+      node_net:
+        ipv4_address: 172.16.238.101
     environment:
       FLASK_DEBUG: 1
       SECRET: WWPBLWPXjpTXyIBs
       SALT: b'MY\xad\x0e\xe8k\x7f,dT\xf3\xf4\x13s]\xa2'
       FILES_PATH: "db/node1"
+      NODE_IP: 172.16.238.101:8881
   node-2:
     build:
      context: .
      dockerfile: ./Docker/node2/Dockerfile
     ports: ["8082:8882"]
     volumes: [./app:/app]
+    networks:
+      node_net:
+        ipv4_address: 172.16.238.102
     environment:
       FLASK_DEBUG: 1
       SECRET: OPpIMjDTTMYrsCcC
       SALT: b'\x15Y\x8cX\x84\xec\xebz\xd5\x07tTa\x87\x8b\x11'
       FILES_PATH: "db/node2"
+      NODE_IP: 172.16.238.102:8882
   node-3:
     build:
      context: .
      dockerfile: ./Docker/node3/Dockerfile
     ports: ["8083:8883"]
     volumes: [./app:/app]
+    networks:
+      node_net:
+        ipv4_address: 172.16.238.103
     environment:
       FLASK_DEBUG: 1
       SECRET: qgOqQbewtODlmhdb
       SALT: b'\xe7\x87V\x02\xb7\xd6I\xa3\xbcj\x02\x01\x06\x16\xc9n'
       FILES_PATH: "db/node3"
+      NODE_IP: 172.16.238.103:8883
   node-4:
     build:
      context: .
      dockerfile: ./Docker/node4/Dockerfile
     ports: ["8084:8884"]
     volumes: [./app:/app]
+    networks:
+      node_net:
+        ipv4_address: 172.16.238.104
     environment:
       FLASK_DEBUG: 1
       SECRET: APPYSNASUyfdIhky
       SALT: b'\x0cGc\xfeZ\xf3yb\x84\xd9\x8e\xaeU\x9ef\xa1'
       FILES_PATH: "db/node4"
+      NODE_IP: 172.16.238.104:8884
+
+networks:
+  node_net:
+    driver: bridge
+    enable_ipv6: false
+    ipam:
+      config:
+        - subnet: 172.16.238.0/24
+          gateway: 172.16.238.1
