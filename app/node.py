@@ -37,7 +37,7 @@ def connect():
     
     body = {
         "ip": key_manager.get_curr_ip(),
-        "pub_key": key_manager.get_public_key().to_pem()
+        "pub_key": key_manager.get_public_key().to_pem().decode('UTF-8')
     }
     
     try:

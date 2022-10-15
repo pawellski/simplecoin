@@ -66,11 +66,11 @@ class KeyManager:
         except FileNotFoundError as e:
             return {}
 
-    #TODO if no file then init
+    #TODO if no file then
     def __init_network(self):
         self.__pub_key_list['entries'].append({
             'ip': self.__ip,
-            'pub_key': self.__pub_key.to_pem()
+            'pub_key': self.__pub_key.to_pem().decode('UTF-8')
         })
 
     def get_private_key(self):
