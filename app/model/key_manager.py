@@ -2,6 +2,7 @@ from ecdsa import SigningKey, VerifyingKey, NIST384p
 from Crypto.Protocol.KDF import PBKDF2
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
+from os import environ
 import base64, json
 
 import logging
@@ -16,7 +17,12 @@ class KeyManager:
         self.__secret = secret
         self.__salt = salt
         self.__files_path = files_path
+        self.__ip = f"http://{environ['NODE_IP']}"
+        self.__pub_key_list = { 
+            'entries': []
+        }
         self.__get_keys()
+        self.__init_network()
     
     def __get_keys(self):
         keys = self.__read_keys()
@@ -60,8 +66,39 @@ class KeyManager:
         except FileNotFoundError as e:
             return {}
 
+    #TODO if no file then init
+    def __init_network(self):
+        self.__pub_key_list['entries'].append({
+            'ip': self.__ip,
+            'pub_key': self.__pub_key.to_pem()
+        })
+
     def get_private_key(self):
         return self.__priv_key
     
     def get_public_key(self):
         return self.__pub_key
+
+    def get_curr_ip(self):
+        return self.__ip
+
+    #TODO save to file
+    def update_pub_key_list(self, new_pub_key_list):
+        self.__pub_key_list = new_pub_key_list
+
+    #TODO save to file
+    def save_new_pub_key(self, new_entry):
+        for el in self.__pub_key_list['entries']:
+    
+            if el == new_entry:
+                return
+        
+            if el['ip'] == new_entry['ip']:
+                el['pub_key'] = new_entry['pub_key']
+                return
+    
+        self.__pub_key_list['entries'].append(new_entry)
+    
+    #TODO load from file
+    def get_pub_key_list(self):
+        return self.__pub_key_list

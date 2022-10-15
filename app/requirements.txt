@@ -1,5 +1,5 @@
 flask
-pyopenssl
 Werkzeug
 pycryptodome
 ecdsa
+requests
