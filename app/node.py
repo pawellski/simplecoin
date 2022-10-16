@@ -1,12 +1,11 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, make_response
 from model.key_manager import KeyManager
 from requests import post
 from ecdsa import BadSignatureError, VerifyingKey
 import logging
+import base64
 import json
 import os
-import base64
-
 
 
 SECRET = "SECRET"
@@ -16,8 +15,8 @@ FILES_PATH = "FILES_PATH"
 GET = "GET"
 POST = "POST"
 
-OK = '200'
-ERROR = '400'
+OK = 200
+ERROR = 400
 
 app = Flask(__name__, static_url_path="")
 log = app.logger
@@ -30,7 +29,7 @@ log.debug(f"Starting key list: {key_manager.get_pub_key_list()}")
 @app.route('/pub-key-list', methods=[GET])
 def index():
     message_json = json.dumps(key_manager.get_pub_key_list())
-    return message_json, OK
+    return make_response(message_json, OK)
 
 
 @app.route('/connect', methods=[POST])
@@ -48,11 +47,11 @@ def connect():
             
         if res.ok:
             log.info(f"Sucessfully joined new network, received {res.content}")
-            return jsonify(key_manager.get_pub_key_list()), OK
+            return make_response(jsonify(key_manager.get_pub_key_list()), OK)
         
     except Exception as e:
         log.error(f"Error connecting to network, target node: {ip}, exception: {e}")
-        return f"Error connecting to network", ERROR
+        return make_response(f"Error connecting to network", ERROR)
 
     
     
@@ -68,14 +67,14 @@ def join():
     except Exception as e:
         error_mes = f"Error on saving new entries in public key list, error: {e}" 
         log.error(error_mes)
-        return error_mes, ERROR
+        return make_response(error_mes, ERROR)
 
     result, ip = request_pub_key_list_updates()
 
     if not result:
-        return f"Error updating list for address {ip}", ERROR
+        return make_response(f"Error updating list for address {ip}", ERROR)
     
-    return 'Successfully added new node(s) to network', OK
+    return make_response('Successfully added new node(s) to network', OK)
 
 
 @app.route('/update', methods=[POST])
@@ -86,14 +85,14 @@ def update():
     try:
         key_manager.override_pub_key_list(request_data)     
         log.info(f"List updated succesfully")
-        return OK
+        return make_response("", OK)
     
     except Exception as e:
         log.error(f"Error encountered during call to update list, error: {e}")    
-        return ERROR
+        return make_response("", ERROR)
 
 
-@app.route('/send_message', methods=[POST])
+@app.route('/send-message', methods=[POST])
 def send_message():
     request_data = request.json
     ip = request_data['ip']
@@ -108,39 +107,43 @@ def send_message():
     }
 
     try:
-        res = post(format_ip(ip, '/receive_message'), json = body)
+        res = post(format_ip(ip, '/receive-message'), json = body)
         
         if res.ok:
             log.info(f"Got: {res.content}")
-            return res.content, OK
+            return make_response(res.content, OK)
+        else:
+            return make_response("Error sending message", ERROR)
             
     except Exception as e:
         error_mes = f"Error encountered during call to receive message, error: {e}" 
         log.error(error_mes)
-        return error_mes, ERROR
+        return make_response(error_mes, ERROR)
 
-    return "Error sending message"
-
-@app.route('/receive_message', methods=[POST])
+@app.route('/receive-message', methods=[POST])
 def receive_message():
+    log.debug("request.remote_addr")
+    log.debug(request.remote_addr)
     request_data = request.json
     ip = request_data['ip'] 
     signed_message = request_data['signed_message']
     plaintext = request_data['plaintext']
 
     try:
+        body = { }
         if verify_sender(ip, signed_message, plaintext):
-            body = {
-                "confirmation":"OK",
-                "message_from_veryfier":"You sign message using your private key",
-                "sended_message": plaintext
-            }
-            return body
+            body['confirmation'] = 'True'
+            body['message_from_veryfier'] = 'Message signed correctly'
+        else:
+            body['confirmation'] = 'False'
+            body['message_from_veryfier'] = 'Message signed incorrectly'
+        body['sended_message'] = plaintext
+        return make_response(jsonify(body), OK)
 
     except Exception as e:
         error_mes = f"Error encountered during veryfing message, error: {e}" 
         log.error(error_mes)
-        return error_mes, ERROR
+        return make_response(error_mes, ERROR)
 
 
 def request_pub_key_list_updates():
