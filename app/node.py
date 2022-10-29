@@ -101,7 +101,6 @@ def send_message():
     signed_message = key_manager.get_private_key().sign(message.encode('utf-8')) 
     
     body = {
-        "ip": key_manager.get_curr_ip(), 
         "signed_message": base64.b64encode(signed_message).decode('utf-8'),
         "plaintext": message
     }
@@ -125,7 +124,7 @@ def receive_message():
     log.debug("request.remote_addr")
     log.debug(request.remote_addr)
     request_data = request.json
-    ip = request_data['ip'] 
+    ip = request.remote_addr 
     signed_message = request_data['signed_message']
     plaintext = request_data['plaintext']
 

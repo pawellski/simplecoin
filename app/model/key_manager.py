@@ -94,8 +94,8 @@ class KeyManager:
     def get_pub_key_list(self):
         return self.__pub_key_list
 
-    def get_pub_key_for_ip(self, ip):
+    def get_pub_key_for_ip(self, ip_without_port):
         for entry in self.__pub_key_list['entries']:
-            if entry['ip'] == ip:
+            if ip_without_port in entry['ip']:
                 return entry['pub_key']
         return None
