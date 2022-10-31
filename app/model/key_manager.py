@@ -2,6 +2,7 @@ from ecdsa import SigningKey, VerifyingKey, NIST384p
 from Crypto.Protocol.KDF import PBKDF2
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
+from Crypto.Random import get_random_bytes
 from os import environ
 import base64, json
 
@@ -10,12 +11,11 @@ import logging
 KEYS_FILENAME = 'keys.json'
 
 class KeyManager:
-    def __init__(self, secret, salt, files_path, log):
+    def __init__(self, secret, files_path, log):
         self.__log = log
         self.__priv_key = None
         self.__pub_key = None
         self.__secret = secret
-        self.__salt = salt
         self.__files_path = files_path
         self.__ip = f"http://{environ['NODE_IP']}"
         self.__pub_key_list = { 
@@ -41,15 +41,20 @@ class KeyManager:
         self.__log.info(self.__pub_key.to_pem())
         keys = {}
         keys['pub_key'] = base64.b64encode(self.__pub_key.to_pem()).decode('utf-8')
-        kdf = PBKDF2(self.__secret.encode('utf-8'), self.__salt, dkLen=32)
-        aes = AES.new(kdf, AES.MODE_ECB)
+        salt = get_random_bytes(16)
+        kdf = PBKDF2(self.__secret.encode('utf-8'), salt, dkLen=32)
+        iv = get_random_bytes(16)
+        aes = AES.new(kdf, AES.MODE_CBC, iv)
         keys['priv_key'] = base64.b64encode(aes.encrypt(pad(self.__priv_key.to_pem(), 16))).decode('utf-8')
+        keys['extra'] = base64.b64encode(salt + iv).decode('utf-8')
         return keys
 
     def __load_keys(self, keys):
         self.__pub_key = VerifyingKey.from_pem(base64.b64decode(keys['pub_key'].encode('utf-8')))
-        kdf = PBKDF2(self.__secret.encode('utf-8'), self.__salt, dkLen=32)
-        aes = AES.new(kdf, AES.MODE_ECB)
+        salt = base64.b64decode(keys['extra'].encode('utf-8'))[0:16]
+        iv = base64.b64decode(keys['extra'].encode('utf-8'))[16:32]
+        kdf = PBKDF2(self.__secret.encode('utf-8'), salt, dkLen=32)
+        aes = AES.new(kdf, AES.MODE_CBC, iv)
         self.__priv_key = SigningKey.from_pem(unpad(aes.decrypt(base64.b64decode(keys['priv_key'].encode('utf-8'))), 16).decode('utf-8'))
         self.__log.info(self.__priv_key.to_pem())
         self.__log.info(self.__pub_key.to_pem())

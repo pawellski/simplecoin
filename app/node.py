@@ -9,7 +9,6 @@ import os
 
 
 SECRET = "SECRET"
-SALT = "SALT"
 FILES_PATH = "FILES_PATH"
 
 GET = "GET"
@@ -21,7 +20,7 @@ ERROR = 400
 app = Flask(__name__, static_url_path="")
 log = app.logger
 
-key_manager = KeyManager(os.environ.get(SECRET), os.environ.get(SALT), os.environ.get(FILES_PATH), log)
+key_manager = KeyManager(os.environ.get(SECRET), os.environ.get(FILES_PATH), log)
 
 log.debug(f"Starting key list: {key_manager.get_pub_key_list()}")
 
