@@ -1,7 +1,7 @@
 FROM python:3.10-alpine
 WORKDIR /app
 
-ENV FLASK_APP node.py
+ENV FLASK_APP host.py
 ENV FLASK_RUN_HOST 0.0.0.0
 ENV FLASK_RUN_PORT 8881
 
