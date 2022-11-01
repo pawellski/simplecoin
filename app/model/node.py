@@ -1,4 +1,7 @@
 from model.key_manager import KeyManager
+from model.message_generator import MessageGenerator
+from model.blockchain import Blockchain
+from model.miner import Miner
 import json
 
 OK = 200
@@ -7,6 +10,9 @@ ERROR = 400
 class Node:
     def __init__(self, secret, files_path, log):
         self.__key_manager = KeyManager(secret, files_path, log)
+        self.__message_generator = MessageGenerator(log)
+        self.__blockchain = Blockchain(files_path, log)
+        self.__miner = Miner(log)
 
     def get_pub_key_list(self):
         return json.dumps(self.__key_manager.get_pub_key_list()), OK
