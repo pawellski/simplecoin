@@ -7,11 +7,13 @@ import json
 OK = 200
 ERROR = 400
 
+DIFFICULTY_BITS = 20
+
 class Node:
     def __init__(self, secret, files_path, log):
         self.__key_manager = KeyManager(secret, files_path, log)
         self.__message_generator = MessageGenerator(log)
-        self.__blockchain = Blockchain(files_path, log)
+        self.__blockchain = Blockchain(files_path, log, DIFFICULTY_BITS)
         self.__miner = Miner(log)
 
     def get_pub_key_list(self):
