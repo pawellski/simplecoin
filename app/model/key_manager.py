@@ -140,6 +140,9 @@ class KeyManager:
     def get_pub_key_list(self):
         return self.__pub_key_list
 
+    def get_own_ip(self):
+        return self.__ip
+
     def connect(self, request_data):
         ip = request_data['ip']
         self.__log.info(f"Received request to join new network, target node: {ip}")
@@ -178,7 +181,6 @@ class KeyManager:
         signed_message = self.__sign_message(message)
 
         body = {
-            "ip": self.__ip,
             "signed_message": base64.b64encode(signed_message).decode('utf-8'),
             "plaintext": message
         }
@@ -195,14 +197,13 @@ class KeyManager:
             raise
 
 
-    def receive_message(self, request_data):
-        ip = request_data['ip']
+    def receive_message(self, request_data, addressee_ip):
         signed_message = request_data['signed_message']
         plaintext = request_data['plaintext']
 
         try:
             body = {}
-            if self.__verify_sender(ip, signed_message, plaintext):
+            if self.__verify_sender(addressee_ip, signed_message, plaintext):
                 body['confirmation'] = 'True'
                 body['message_from_veryfier'] = 'Message signed correctly'
             else:
@@ -222,3 +223,71 @@ class KeyManager:
         except Exception as e:
             e.message = f"Error encountered during call to update list, error: {e}"
             raise
+
+
+
+
+
+
+
+
+
+
+
+    def sign_transaction_message(self, request_data):
+        message = request_data['message']
+        signed_message = self.__sign_message(message)
+
+        body = {
+            "signed_message": base64.b64encode(signed_message).decode('utf-8')
+        }
+
+        try:
+            res = post(self.__format_ip(self.__ip, '/broadcast_transaction_message'), json = body)
+            if res.ok:
+                self.__log.info(f"Transaction message has been broadcasted: {res.content}")
+                return res.content
+            else:
+                raise Exception("Error sending transaction message to be broadcasted")
+        except Exception as e:
+            e.message = f"Error encountered during call to broadcast transacion message, error: {e}"
+            raise
+
+
+    def broadcast_transaction_message(self, transaction_message):
+        self.__log.info(f"Received request to broadcast new transaction message")
+   
+        result, ip = self.__requests_transaction_message_broadcast(transaction_message)
+        if not result:
+            raise Exception(f"Error broadcasting transaction message to {ip}")
+        return "Successfully broadcasted transaction message"
+
+
+
+    def __requests_transaction_message_broadcast(self, transaction_message):
+        self.__log.info(f"Starting process for broadcasting transaction message")
+
+        for el in self.__pub_key_list['entries']:
+            res = self.__request_transaction_message_broadcast(el['ip'], transaction_message)
+            if not res:
+                self.__log.info(f"Transaction message broadcast process failed")
+                return False, el['ip']
+        return True, None
+
+
+    def __request_transaction_message_broadcast(self, ip, transaction_message):
+        self.__log.info(f"Requesting transaction message broadcast for ip {ip}")
+        try:
+            res = post(self.__format_ip(ip, '/update-transaction-pool'), json = transaction_message)
+            return True if res.ok else False
+
+        except Exception as e:
+            self.__log.error(f"Transaction message broadcast for ip {ip} failed, reason: {e}")
+            return False
+
+
+
+################### TESTING ##################
+    def update_transaction_pool(self, ip, request_data):
+        self.__log.info(f"!!!!!!!!!  TRANSACTION POOL UPDATED   !!!!!!!!!")
+        return True

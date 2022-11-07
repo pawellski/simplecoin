@@ -14,6 +14,9 @@ POST = "POST"
 app = Flask(__name__, static_url_path="")
 log = app.logger
 
+# class Server:
+    # def __init__(self, name):
+# app = Flask(name)
 node = Node(os.environ.get(SECRET), os.environ.get(FILES_PATH), log)
 
 @app.route('/pub-key-list', methods=[GET])
@@ -43,10 +46,34 @@ def send_message():
 
 @app.route('/verify-message-from-node', methods=[POST])
 def receive_message():
-    message, status = node.verify_message_from_node(request.json)
+    addressee_ip = request.remote_addr
+    message, status = node.verify_message_from_node(request.json, addressee_ip)
     return make_response(message, status)
 
 @app.route('/verify-blockchain', methods=[GET])
 def verify_blockchain():
     message, status = node.verify_blockchain()
+    return make_response(message, status)
+
+@app.route('/sign-transaction-message', methods=[POST])
+def sign_transaction_message():
+    message, status = node.sign_transaction_message(request.json)
+    return make_response(message, status)
+
+@app.route('/broadcast_transaction_message', methods=[POST])
+def broadcast_transaction_message():
+    message, status = node.broadcast_transaction_message(request.json)
+    return make_response(message, status)
+
+@app.route('/update-transaction-pool', methods=[POST])
+def update_transaction_pool():
+    message, status = node.update_transaction_pool(request.json)
+    return make_response(message, status)
+
+
+################### TESTING ##################
+
+@app.route('/generate-transaction-message', methods=[POST])
+def generate_transaction_message():
+    message, status = node.generate_transaction_message()
     return make_response(message, status)
