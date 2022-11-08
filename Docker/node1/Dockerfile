@@ -10,4 +10,4 @@ COPY ./app /app
 RUN apk add --no-cache gcc musl-dev linux-headers openssl-dev libffi-dev
 RUN pip install -r requirements.txt
 
-CMD ["flask", "run"]
+CMD ["flask", "run", "--no-reload"]
