@@ -45,3 +45,8 @@ def send_message():
 def receive_message():
     message, status = node.verify_message_from_node(request.json)
     return make_response(message, status)
+
+@app.route('/verify-blockchain', methods=[GET])
+def verify_blockchain():
+    message, status = node.verify_blockchain()
+    return make_response(message, status)

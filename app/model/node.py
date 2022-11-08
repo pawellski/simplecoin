@@ -48,3 +48,6 @@ class Node:
             return self.__key_manager.receive_message(request_data), OK
         except Exception as e:
             return str(e), ERROR
+
+    def verify_blockchain(self):
+        return self.__blockchain.verify_blockchain(), OK
