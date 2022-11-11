@@ -8,40 +8,44 @@ import random
 import threading
 import time
 
-class MessageGenerator:
+class MessageGenerator(threading.Thread):
     def __init__(self, log, key_manager):
         self.__generator_thread = None
         self.__log = log
         self.__key_manager = key_manager
-        self.__INTERVAL = 5.0
-        self.__is_generator_started = False
+        self.__INTERVAL = 5
+        self.__ON_OFF_generator = False
 
     def start_generator(self):
-        self.__generator_thread = threading.Timer(self.__INTERVAL, self.generation_process)
-        self.__generator_thread.start()
-        self.__is_generator_started = True
         self.__log.info(f"Message Generator is started")
+        self.__generator_thread = threading.Thread(target=self.generation_process)
+        self.__generator_thread.run()
         return "Message Generator is started"
-
+        
     def stop_generator(self):
-        if (self.__is_generator_started):
-            self.__generator_thread.cancel()
-            self.__is_generator_started = False
+        if (self.__ON_OFF_generator):
+            self.__ON_OFF_generator = False
             self.__log.info(f"Message Generator is stopped")
         return "Message Generator is stopped"        
 
     def generation_process(self):
-        message = self.__generate_new_message()
-        self.__broadcast_transaction_message(message)
+        self.__ON_OFF_generator = True
+        while self.__ON_OFF_generator:
+            message, signed_message = self.__generate_new_message()
+            self.__broadcast_transaction_message(message, signed_message)
+            time.sleep(self.__INTERVAL)
 
     def __generate_new_message(self):
         message = "message"+str(random.randint(0,1000))
         signed_message = self.__key_manager.sign_message(message)
         self.__log.info(f"Sucessfully generated and signed new transaction message")
-        return signed_message
+        return message, signed_message
     
-    def __broadcast_transaction_message(self, transaction_message):   
-        body = { "signed_message": base64.b64encode(transaction_message).decode('utf-8') }
+    def __broadcast_transaction_message(self, message, signed_message):   
+        
+        body = { "signed_message": base64.b64encode(signed_message).decode('utf-8'),
+                 "message":message
+         }
 
         result, ip = self.__requests_transaction_message_broadcast(body)
         if not result:
