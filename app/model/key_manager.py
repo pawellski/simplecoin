@@ -86,14 +86,11 @@ class KeyManager:
                 return entry['pub_key']
         return None
 
-    def __format_ip(self, ip, endpoint):
-        return f"{ip}/{endpoint}"
-
     def __request_pub_key_list_update(self, ip):
         if ip != self.__ip:
             self.__log.info(f"Requesting pub key update for ip {ip}")
             try:
-                res = post(self.__format_ip(ip, 'update'), json = self.__pub_key_list)
+                res = post(self.format_ip(ip, 'update'), json = self.__pub_key_list)
                 return True if res.ok else False
 
             except Exception as e:
@@ -134,7 +131,10 @@ class KeyManager:
             self.__log.error(f"Veryfing massage failed, reason: {e}")
             return False
 
-    def __sign_message(self, message):
+    def format_ip(self, ip, endpoint):
+        return f"{ip}/{endpoint}"
+
+    def sign_message(self, message):
         return self.__priv_key.sign(message.encode('utf-8'))
 
     def get_pub_key_list(self):
@@ -150,7 +150,7 @@ class KeyManager:
 
         try:
             self.__log.info(f"Sending request to join network to target node: {ip}")
-            res = post(self.__format_ip(ip, 'join'), json = body)
+            res = post(self.format_ip(ip, 'join'), json = body)
             if res.ok:
                 self.__log.info(f"Sucessfully joined new network, received {res.content}")
                 return jsonify(self.get_pub_key_list())
@@ -178,7 +178,7 @@ class KeyManager:
     def send_message(self, request_data):
         ip = request_data['ip']
         message = request_data['message']
-        signed_message = self.__sign_message(message)
+        signed_message = self.sign_message(message)
 
         body = {
             "signed_message": base64.b64encode(signed_message).decode('utf-8'),
@@ -186,7 +186,7 @@ class KeyManager:
         }
 
         try:
-            res = post(self.__format_ip(ip, '/verify-message-from-node'), json = body)
+            res = post(self.format_ip(ip, '/verify-message-from-node'), json = body)
             if res.ok:
                 self.__log.info(f"Got: {res.content}")
                 return res.content
@@ -224,70 +224,4 @@ class KeyManager:
             e.message = f"Error encountered during call to update list, error: {e}"
             raise
 
-
-
-
-
-
-
-
-
-
-
-    def sign_transaction_message(self, request_data):
-        message = request_data['message']
-        signed_message = self.__sign_message(message)
-
-        body = {
-            "signed_message": base64.b64encode(signed_message).decode('utf-8')
-        }
-
-        try:
-            res = post(self.__format_ip(self.__ip, '/broadcast_transaction_message'), json = body)
-            if res.ok:
-                self.__log.info(f"Transaction message has been broadcasted: {res.content}")
-                return res.content
-            else:
-                raise Exception("Error sending transaction message to be broadcasted")
-        except Exception as e:
-            e.message = f"Error encountered during call to broadcast transacion message, error: {e}"
-            raise
-
-
-    def broadcast_transaction_message(self, transaction_message):
-        self.__log.info(f"Received request to broadcast new transaction message")
-   
-        result, ip = self.__requests_transaction_message_broadcast(transaction_message)
-        if not result:
-            raise Exception(f"Error broadcasting transaction message to {ip}")
-        return "Successfully broadcasted transaction message"
-
-
-
-    def __requests_transaction_message_broadcast(self, transaction_message):
-        self.__log.info(f"Starting process for broadcasting transaction message")
-
-        for el in self.__pub_key_list['entries']:
-            res = self.__request_transaction_message_broadcast(el['ip'], transaction_message)
-            if not res:
-                self.__log.info(f"Transaction message broadcast process failed")
-                return False, el['ip']
-        return True, None
-
-
-    def __request_transaction_message_broadcast(self, ip, transaction_message):
-        self.__log.info(f"Requesting transaction message broadcast for ip {ip}")
-        try:
-            res = post(self.__format_ip(ip, '/update-transaction-pool'), json = transaction_message)
-            return True if res.ok else False
-
-        except Exception as e:
-            self.__log.error(f"Transaction message broadcast for ip {ip} failed, reason: {e}")
-            return False
-
-
-
-################### TESTING ##################
-    def update_transaction_pool(self, ip, request_data):
-        self.__log.info(f"!!!!!!!!!  TRANSACTION POOL UPDATED   !!!!!!!!!")
-        return True
+  

@@ -58,13 +58,17 @@ def verify_blockchain():
 @app.route('/sign-transaction-message', methods=[POST])
 def sign_transaction_message():
     message, status = node.sign_transaction_message(request.json)
+    
+@app.route('/start-generator', methods=[GET])
+def start_generator():
+    message, status = node.start_generator()
     return make_response(message, status)
 
-@app.route('/broadcast_transaction_message', methods=[POST])
-def broadcast_transaction_message():
-    message, status = node.broadcast_transaction_message(request.json)
+@app.route('/stop-generator', methods=[GET])
+def stop_generator():
+    message, status = node.stop_generator()
     return make_response(message, status)
-
+################### TESTING ##################
 @app.route('/update-transaction-pool', methods=[POST])
 def update_transaction_pool():
     message, status = node.update_transaction_pool(request.json)

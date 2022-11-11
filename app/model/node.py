@@ -13,7 +13,7 @@ class Node:
     def __init__(self, secret, files_path, log):
         self.__key_manager = KeyManager(secret, files_path, log)
         self.__blockchain = Blockchain(files_path, log, DIFFICULTY_BITS)
-        self.__message_generator = MessageGenerator(log, self.__key_manager.get_own_ip())
+        self.__message_generator = MessageGenerator(log, self.__key_manager)
         self.__miner = Miner(log)
 
     def get_pub_key_list(self):
@@ -85,3 +85,23 @@ class Node:
                 return str(e), ERROR
             return
 ###########################            
+    def start_generator(self):
+            try:
+                return self.__message_generator.start_generator(), OK
+            except Exception as e:
+                return str(e), ERROR
+
+    def stop_generator(self):
+            try:
+                return self.__message_generator.stop_generator(), OK
+            except Exception as e:
+                return str(e), ERROR
+
+################### TESTING ################## 
+    def update_transaction_pool(self, request_data):         
+            try:
+                return self.__miner.update_transaction_pool(request_data), OK
+            except Exception as e:
+                return str(e), ERROR
+            
+        

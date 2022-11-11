@@ -4,29 +4,75 @@ from os import environ
 import base64, json
 from flask import jsonify
 import logging
+import random
+import threading
+import time
 
 class MessageGenerator:
-    def __init__(self, log, ip):
+    def __init__(self, log, key_manager):
+        self.__generator_thread = None
         self.__log = log
-        self.__ip = ip
+        self.__key_manager = key_manager
+        self.__INTERVAL = 10
+        self.__is_generator_started = False
 
-    def generate_new_message(self):
-        message = "message1"
+    def start_generator(self):
+        self.__generator_thread = threading.Timer(self.__INTERVAL, self.generation_process).start()
+        self.__is_generator_started = True
+        self.__log.info(f"Message Generator is started")
+        return ""
 
-        body = { "message": message }
+    def stop_generator(self):
+        if (self.__is_generator_started):
+            self.__generator_thread.cancel()
+            self.__is_generator_started = False
+            self.__log.info(f"Message Generator is stopped")
+        return ""        
 
+    def generation_process(self):
+
+        message = self.__generate_new_message()
+        self.__broadcast_transaction_message(message)
+        # timer_start = time.perf_counter()
+        # while((time.perf_counter()-timer_start) < self.INTERVAL):
+        #    self.__generator_thread.
+        # self.__generator_thread.start()
+
+    def __generate_new_message(self):
+        message = "message"+random.randint(0,1000)
+        signed_message = self.__key_manager.sign_message(message)
+        self.__log.info(f"Sucessfully generated and signed new transaction message")
+        return signed_message
+    
+    def __broadcast_transaction_message(self, transaction_message):   
+        body = { "signed_message": base64.b64encode(transaction_message).decode('utf-8') }
+
+        result, ip = self.__requests_transaction_message_broadcast(body)
+        if not result:
+            raise Exception(f"Error broadcasting transaction message to {ip}")    
+        else:
+            self.__log.info(f"Successfully broadcasted transaction message")
+
+    def __requests_transaction_message_broadcast(self, request_data):
+            self.__log.info(f"Starting process for broadcasting transaction message")
+
+            for el in self.__key_manager.get_pub_key_list()['enties']:
+                res = self.__request_transaction_message_broadcast(el['ip'], request_data)
+                if not res:
+                    self.__log.info(f"Transaction message broadcast process failed")
+                    return False, el['ip']
+            return True, None
+
+    def __request_transaction_message_broadcast(self, ip, request_data):
+        self.__log.info(f"Requesting transaction message broadcast for ip {ip}")
         try:
-            res = post(self.__format_ip(self.__ip, '/sign-transaction-message'), json = body)
-            if res.ok:
-                self.__log.info(f"Sucessfully signed transaction message, received {res.content}")
-                return res.content
-            else:
-                raise Exception("Error sending transaction message to sign")
+            res = post(self.__key_manager.format_ip(ip, '/update-transaction-pool'), json = request_data)
+            return True if res.ok else False
         except Exception as e:
-            e.message = f"Error encountered during call to signing transaction message, error: {e}"
-            raise
+            self.__log.error(f"Transaction message broadcast for ip {ip} failed, reason: {e}")
+            return False
+    
 
-    def __format_ip(self, ip, endpoint):
-        return f"{ip}/{endpoint}"
+ 
 
      
