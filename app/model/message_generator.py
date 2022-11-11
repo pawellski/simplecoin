@@ -13,33 +13,29 @@ class MessageGenerator:
         self.__generator_thread = None
         self.__log = log
         self.__key_manager = key_manager
-        self.__INTERVAL = 10
+        self.__INTERVAL = 5.0
         self.__is_generator_started = False
 
     def start_generator(self):
-        self.__generator_thread = threading.Timer(self.__INTERVAL, self.generation_process).start()
+        self.__generator_thread = threading.Timer(self.__INTERVAL, self.generation_process)
+        self.__generator_thread.start()
         self.__is_generator_started = True
         self.__log.info(f"Message Generator is started")
-        return ""
+        return "Message Generator is started"
 
     def stop_generator(self):
         if (self.__is_generator_started):
             self.__generator_thread.cancel()
             self.__is_generator_started = False
             self.__log.info(f"Message Generator is stopped")
-        return ""        
+        return "Message Generator is stopped"        
 
     def generation_process(self):
-
         message = self.__generate_new_message()
         self.__broadcast_transaction_message(message)
-        # timer_start = time.perf_counter()
-        # while((time.perf_counter()-timer_start) < self.INTERVAL):
-        #    self.__generator_thread.
-        # self.__generator_thread.start()
 
     def __generate_new_message(self):
-        message = "message"+random.randint(0,1000)
+        message = "message"+str(random.randint(0,1000))
         signed_message = self.__key_manager.sign_message(message)
         self.__log.info(f"Sucessfully generated and signed new transaction message")
         return signed_message
@@ -56,7 +52,7 @@ class MessageGenerator:
     def __requests_transaction_message_broadcast(self, request_data):
             self.__log.info(f"Starting process for broadcasting transaction message")
 
-            for el in self.__key_manager.get_pub_key_list()['enties']:
+            for el in self.__key_manager.get_pub_key_list()['entries']:
                 res = self.__request_transaction_message_broadcast(el['ip'], request_data)
                 if not res:
                     self.__log.info(f"Transaction message broadcast process failed")

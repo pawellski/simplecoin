@@ -14,9 +14,6 @@ POST = "POST"
 app = Flask(__name__, static_url_path="")
 log = app.logger
 
-# class Server:
-    # def __init__(self, name):
-# app = Flask(name)
 node = Node(os.environ.get(SECRET), os.environ.get(FILES_PATH), log)
 
 @app.route('/pub-key-list', methods=[GET])
