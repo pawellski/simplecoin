@@ -90,17 +90,20 @@ class Node:
                 return self.__message_generator.start_generator(), OK
             except Exception as e:
                 return str(e), ERROR
+    def start_generator(self, request):
+        try:
+            return self.__message_generator.start_generator(request), OK
+        except Exception as e:
+            return str(e), ERROR
 
     def stop_generator(self):
-            try:
-                return self.__message_generator.stop_generator(), OK
-            except Exception as e:
-                return str(e), ERROR
+        try:
+            return self.__message_generator.stop_generator(), OK
+        except Exception as e:
+            return str(e), ERROR
 
     def update_transaction_pool(self, request_data):         
-            try:
-                return self.__miner.update_transaction_pool(request_data), OK
-            except Exception as e:
-                return str(e), ERROR
-            
-        
+        try:
+            return self.__miner.update_transaction_pool(request_data), OK
+        except Exception as e:
+            return str(e), ERROR

@@ -56,12 +56,12 @@ def verify_blockchain():
 def sign_transaction_message():
     message, status = node.sign_transaction_message(request.json)
     
-@app.route('/start-generator', methods=[GET])
+@app.route('/start-generator', methods=[POST])
 def start_generator():
-    message, status = node.start_generator()
+    message, status = node.start_generator(request)
     return make_response(message, status)
 
-@app.route('/stop-generator', methods=[GET])
+@app.route('/stop-generator', methods=[POST])
 def stop_generator():
     message, status = node.stop_generator()
     return make_response(message, status)

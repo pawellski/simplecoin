@@ -8,48 +8,65 @@ import random
 import threading
 import time
 
+
+DEFAULT_INTERVAL = 5
 class MessageGenerator():
     def __init__(self, log, key_manager):
         self.__generator_thread = None
         self.__log = log
         self.__key_manager = key_manager
-        self.__INTERVAL = 5
-        self.__on_off_generator = False
-
+        
+        self.__generator_active = False
+          
     """
     Start generator by requesting to endpoint /start-generator
     Create a new thread to manage generation process
+    If there isn't a interval value in body, use default interval
+    If requested interval is not an integer raise an error 
     """
-    def start_generator(self):
+    def start_generator(self, request):
+        if request.is_json:
+            request_data = request.json
+            if(isinstance(request_data["interval"], int)):
+                INTERVAL = request_data["interval"]
+                self.__log.info(f"Generation using requested interval: {INTERVAL}s")
+            else:
+                error_message = (f"Requested interval type, should be an integer instead of {type(request_data['interval'])}")
+                self.__log.error(error_message)
+                raise Exception(error_message)
+        else:
+            INTERVAL = DEFAULT_INTERVAL  
+            self.__log.info(f"Generation using default interval: {INTERVAL}s")
+          
         self.__log.info(f"Message Generator is started")
-        self.__generator_thread = threading.Thread(target=self.generation_process)
+        self.__generator_thread = threading.Thread(target=self.generation_process, args=[INTERVAL])
         self.__generator_thread.start()
         return "Message Generator is started"
 
     """
     Stop generator by requesting to endpoint /stop-generator
-    Change value of ON/OFF flag
+    Change value of __generator_active flag to False
     """    
     def stop_generator(self):
-        if (self.__on_off_generator):
-            self.__on_off_generator = False
-            self.__log.info(f"Message Generator is stopped")
+        self.__log.info(f"Message Generator is stopped")
+        if (self.__generator_active):
+            self.__generator_active = False
         return "Message Generator is stopped"  
 
     """
     Generate message and broadcast it to others in appropriate interval
-    Set the ON/OFF flag on True and call two methods in while loop with time break
-    If ON/OFF flag is False than leave the loop
+    Set the __generator_active flag on True and call two methods in while loop with time break
+    If __generator_active flag is False than leave the loop
     """
-    def generation_process(self):
-        self.__on_off_generator = True
-        while self.__on_off_generator:
+    def generation_process(self, INTERVAL):
+        self.__generator_active = True
+        while self.__generator_active:
             message, signed_message = self.__generate_new_message()
             self.__broadcast_transaction_message(message, signed_message)
-            time.sleep(self.__INTERVAL)
+            time.sleep(INTERVAL)
 
     """
-    Creat and sign new message
+    Create and sign new message
     """
     def __generate_new_message(self):
         message = "message"+str(random.randint(0,1000))
