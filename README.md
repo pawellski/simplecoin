@@ -21,9 +21,23 @@ In order to add a new node to the network, you should send request on */connect*
 In order to display public keys list, you should send request on */pub-key-list* selected node endpoint.
 
 The second topic was verification of a signed message. You need to send a request to */send-message* endpoint and provide a json which consisting of two keys -- docker ip address (of the node which recives and verifies the message) and the message (plain text). The endpoint returns a response from the node that performed the verification.
+### API:
+
 
 ---
+## second milestone
+### assumptions:
+- add blockchain structure and provide storing it in a file
+- add message generator which adds signed messages to transcation pool with fixed interval
+- add miner that searches candidate block and propagate it
+### realization:
+The blockchain structure was implemented in *blockchain.py* file as linked list and bases on block class (implemented in *block.py*). Structure is responsible for adding candidate block to the blockchain, storing blockchain and reading it after start app.
+### API:
+- blockhain verification
 
+  `GET /verify-blockchain`
+
+---
 ## authors
 - Bieńkowski Mikołaj
 - Kuczka Łukasz
