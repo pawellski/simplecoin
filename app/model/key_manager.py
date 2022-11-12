@@ -39,8 +39,6 @@ class KeyManager:
     def __generate_keys(self):
         self.__priv_key = SigningKey.generate(curve=NIST384p)
         self.__pub_key = self.__priv_key.verifying_key
-        self.__log.info(self.__priv_key.to_pem())
-        self.__log.info(self.__pub_key.to_pem())
         keys = {}
         keys['pub_key'] = base64.b64encode(self.__pub_key.to_pem()).decode('utf-8')
         salt = get_random_bytes(16)
@@ -58,12 +56,10 @@ class KeyManager:
         kdf = PBKDF2(self.__secret.encode('utf-8'), salt, dkLen=32)
         aes = AES.new(kdf, AES.MODE_CBC, iv)
         self.__priv_key = SigningKey.from_pem(unpad(aes.decrypt(base64.b64decode(keys['priv_key'].encode('utf-8'))), 16).decode('utf-8'))
-        self.__log.info(self.__priv_key.to_pem())
-        self.__log.info(self.__pub_key.to_pem())
     
     def __save_keys(self, keys):
         with open(f"{self.__files_path}/{KEYS_FILENAME}", 'w') as file:
-            json.dump(keys, file)
+            json.dump(keys, file, indent=4)
 
     def __read_keys(self):
         try:
@@ -152,7 +148,7 @@ class KeyManager:
             self.__log.info(f"Sending request to join network to target node: {ip}")
             res = post(self.format_ip(ip, 'join'), json = body)
             if res.ok:
-                self.__log.info(f"Sucessfully joined new network, received {res.content}")
+                self.__log.info(f"Sucessfully joined new network")
                 return jsonify(self.get_pub_key_list())
         except Exception as e:
             error_message = f"Error connecting to network, target node: {ip}, exception: {e}"
@@ -161,7 +157,7 @@ class KeyManager:
             raise
 
     def join(self, request_data):
-        self.__log.info(f"Received request to join nodes to current network, received {request_data}")
+        self.__log.info(f"Received request to join nodes to current network")
         try:
             self.__update_pub_key_list(request_data)
             self.__log.info(f'New entires added to current public key list')
@@ -215,7 +211,7 @@ class KeyManager:
             raise
 
     def update(self, request_data):
-        self.__log.info(f"Received request to update public key list, new list: {request_data}")
+        self.__log.info(f"Received request to update public key list")
         try:
             self.__override_pub_key_list(request_data)
             return "List updated succesfully"
