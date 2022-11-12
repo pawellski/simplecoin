@@ -1,9 +1,11 @@
-from model.block import Block
 from hashlib import sha256
+from model.block import Block
 import json
+
 
 BLOCKCHAIN_FILENAME = 'blockchain.txt'
 SHA_SIZE = 256
+
 
 class Blockchain:
     def __init__(self, files_path, log, difficulty_bits):
@@ -100,17 +102,26 @@ class Blockchain:
         # 1st check: previous block hash in block must be equaled with hash(previous_block)
         if previous_block is not None:
             if block.get_header().get_previous_block_hash() != previous_block.get_hash():
+                self.__log.error(f"Hashes dont match, head: {previous_block.get_hash()}, candidate: {block.get_header().get_previous_block_hash()}")
                 return False
         # 2nd check: hash(block) must meet expected target
-        if int(block.get_hash(), 16) < self.__target:
+        if int(block.get_hash(), 16) >= self.__target:
+            self.__log.error(f"Candidate does not meet target requirements, hash: {block.get_hash()} target: {self.__target}")
             return False
         return True
 
-    """
-    Add candidate block at the beginning of blockchain
-    """
-    def add_block(self, block):
+    def add_block(self, block=None, block_dict=None):
+        if block_dict is not None:
+            block = Block(
+                previous_block_hash=block_dict['header']['previous_block_hash'],
+                transactions=block_dict['data'],
+                nonce=block_dict['header']['nonce'],
+                previous_block=None
+            )
+        self.__log.info("Saving new candidate")
+        # add new block (head) to blockchain if validation is correct
         if self.__valid_block(block, self.__blockchain_head):
+            self.__log.info("New candidate validated")
             block.set_previous_block(self.__blockchain_head)
             self.__blockchain_head = block
             self.__save_one_block(block)
