@@ -222,5 +222,3 @@ class KeyManager:
         except Exception as e:
             e.message = f"Error encountered during call to update list, error: {e}"
             raise
-
-  

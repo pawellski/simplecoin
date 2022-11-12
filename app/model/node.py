@@ -1,3 +1,4 @@
+from threading import Thread
 from model.key_manager import KeyManager
 from model.message_generator import MessageGenerator
 from model.blockchain import Blockchain
@@ -9,12 +10,14 @@ ERROR = 400
 
 DIFFICULTY_BITS = 20
 
+
 class Node:
     def __init__(self, secret, files_path, log):
         self.__key_manager = KeyManager(secret, files_path, log)
-        self.__blockchain = Blockchain(files_path, log, DIFFICULTY_BITS)
         self.__message_generator = MessageGenerator(log, self.__key_manager)
-        self.__miner = Miner(log)
+        self.__blockchain = Blockchain(files_path, log, DIFFICULTY_BITS)
+        self.__miner = Miner(log, DIFFICULTY_BITS, self.__blockchain, self.__key_manager)
+        self.__current_candidate = None
 
     def get_pub_key_list(self):
         return json.dumps(self.__key_manager.get_pub_key_list()), OK
@@ -52,12 +55,6 @@ class Node:
     def verify_blockchain(self):
         return self.__blockchain.verify_blockchain(), OK
 
-    def start_generator(self):
-        try:
-            return self.__message_generator.start_generator(), OK
-        except Exception as e:
-            return str(e), ERROR
-            
     def start_generator(self, request):
         try:
             return self.__message_generator.start_generator(request), OK
@@ -70,8 +67,24 @@ class Node:
         except Exception as e:
             return str(e), ERROR
 
-    def update_transaction_pool(self, request_data):         
+    def start_miner(self):
+        return self.__miner.start_miner(), OK
+
+    def update_transaction_pool(self, request_data):
         try:
-            return self.__miner.update_transaction_pool(request_data), OK
+            return self.__miner.append_transaction(request_data), OK
         except Exception as e:
             return str(e), ERROR
+
+    def verify_and_save_candidate(self, request_data):
+        self.__current_candidate = request_data
+        thread = Thread(
+            target=self.__verify_and_save_candidate
+        )
+        thread.start()
+        return "Candidate received", OK
+
+    def __verify_and_save_candidate(self):
+        request_data = self.__current_candidate
+        block_added = self.__blockchain.add_block(block_dict=request_data)
+        self.__miner.reset_miner_after_new_candidate_request(block_added)
