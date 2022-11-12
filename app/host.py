@@ -43,10 +43,26 @@ def send_message():
 
 @app.route('/verify-message-from-node', methods=[POST])
 def receive_message():
-    message, status = node.verify_message_from_node(request.json)
+    addressee_ip = request.remote_addr
+    message, status = node.verify_message_from_node(request.json, addressee_ip)
     return make_response(message, status)
 
 @app.route('/verify-blockchain', methods=[GET])
 def verify_blockchain():
     message, status = node.verify_blockchain()
+    return make_response(message, status)
+    
+@app.route('/start-generator', methods=[POST])
+def start_generator():
+    message, status = node.start_generator(request)
+    return make_response(message, status)
+
+@app.route('/stop-generator', methods=[POST])
+def stop_generator():
+    message, status = node.stop_generator()
+    return make_response(message, status)
+
+@app.route('/update-transaction-pool', methods=[POST])
+def update_transaction_pool():
+    message, status = node.update_transaction_pool(request.json)
     return make_response(message, status)

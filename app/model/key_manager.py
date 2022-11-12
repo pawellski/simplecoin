@@ -86,14 +86,11 @@ class KeyManager:
                 return entry['pub_key']
         return None
 
-    def __format_ip(self, ip, endpoint):
-        return f"{ip}/{endpoint}"
-
     def __request_pub_key_list_update(self, ip):
         if ip != self.__ip:
             self.__log.info(f"Requesting pub key update for ip {ip}")
             try:
-                res = post(self.__format_ip(ip, 'update'), json = self.__pub_key_list)
+                res = post(self.format_ip(ip, 'update'), json = self.__pub_key_list)
                 return True if res.ok else False
 
             except Exception as e:
@@ -134,11 +131,17 @@ class KeyManager:
             self.__log.error(f"Veryfing massage failed, reason: {e}")
             return False
 
-    def __sign_message(self, message):
+    def format_ip(self, ip, endpoint):
+        return f"{ip}/{endpoint}"
+
+    def sign_message(self, message):
         return self.__priv_key.sign(message.encode('utf-8'))
 
     def get_pub_key_list(self):
         return self.__pub_key_list
+
+    def get_own_ip(self):
+        return self.__ip
 
     def connect(self, request_data):
         ip = request_data['ip']
@@ -147,7 +150,7 @@ class KeyManager:
 
         try:
             self.__log.info(f"Sending request to join network to target node: {ip}")
-            res = post(self.__format_ip(ip, 'join'), json = body)
+            res = post(self.format_ip(ip, 'join'), json = body)
             if res.ok:
                 self.__log.info(f"Sucessfully joined new network, received {res.content}")
                 return jsonify(self.get_pub_key_list())
@@ -175,16 +178,15 @@ class KeyManager:
     def send_message(self, request_data):
         ip = request_data['ip']
         message = request_data['message']
-        signed_message = self.__sign_message(message)
+        signed_message = self.sign_message(message)
 
         body = {
-            "ip": self.__ip,
             "signed_message": base64.b64encode(signed_message).decode('utf-8'),
             "plaintext": message
         }
 
         try:
-            res = post(self.__format_ip(ip, '/verify-message-from-node'), json = body)
+            res = post(self.format_ip(ip, '/verify-message-from-node'), json = body)
             if res.ok:
                 self.__log.info(f"Got: {res.content}")
                 return res.content
@@ -194,15 +196,13 @@ class KeyManager:
             e.message = f"Error encountered during call to receive message, error: {e}"
             raise
 
-
-    def receive_message(self, request_data):
-        ip = request_data['ip']
+    def receive_message(self, request_data, addressee_ip):
         signed_message = request_data['signed_message']
         plaintext = request_data['plaintext']
 
         try:
             body = {}
-            if self.__verify_sender(ip, signed_message, plaintext):
+            if self.__verify_sender(addressee_ip, signed_message, plaintext):
                 body['confirmation'] = 'True'
                 body['message_from_veryfier'] = 'Message signed correctly'
             else:
@@ -222,3 +222,5 @@ class KeyManager:
         except Exception as e:
             e.message = f"Error encountered during call to update list, error: {e}"
             raise
+
+  

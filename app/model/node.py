@@ -12,8 +12,8 @@ DIFFICULTY_BITS = 20
 class Node:
     def __init__(self, secret, files_path, log):
         self.__key_manager = KeyManager(secret, files_path, log)
-        self.__message_generator = MessageGenerator(log)
         self.__blockchain = Blockchain(files_path, log, DIFFICULTY_BITS)
+        self.__message_generator = MessageGenerator(log, self.__key_manager)
         self.__miner = Miner(log)
 
     def get_pub_key_list(self):
@@ -43,11 +43,35 @@ class Node:
         except Exception as e:
             return str(e), ERROR
 
-    def verify_message_from_node(self, request_data):
+    def verify_message_from_node(self, request_data, addressee_ip):
         try:
-            return self.__key_manager.receive_message(request_data), OK
+            return self.__key_manager.receive_message(request_data, addressee_ip), OK
         except Exception as e:
             return str(e), ERROR
 
     def verify_blockchain(self):
         return self.__blockchain.verify_blockchain(), OK
+
+    def start_generator(self):
+        try:
+            return self.__message_generator.start_generator(), OK
+        except Exception as e:
+            return str(e), ERROR
+            
+    def start_generator(self, request):
+        try:
+            return self.__message_generator.start_generator(request), OK
+        except Exception as e:
+            return str(e), ERROR
+
+    def stop_generator(self):
+        try:
+            return self.__message_generator.stop_generator(), OK
+        except Exception as e:
+            return str(e), ERROR
+
+    def update_transaction_pool(self, request_data):         
+        try:
+            return self.__miner.update_transaction_pool(request_data), OK
+        except Exception as e:
+            return str(e), ERROR
