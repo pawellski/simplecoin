@@ -97,7 +97,6 @@ class Node:
             except Exception as e:
                 return str(e), ERROR
 
-################### TESTING ################## 
     def update_transaction_pool(self, request_data):         
             try:
                 return self.__miner.update_transaction_pool(request_data), OK

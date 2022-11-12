@@ -196,7 +196,6 @@ class KeyManager:
             e.message = f"Error encountered during call to receive message, error: {e}"
             raise
 
-
     def receive_message(self, request_data, addressee_ip):
         signed_message = request_data['signed_message']
         plaintext = request_data['plaintext']

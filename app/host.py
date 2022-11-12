@@ -65,7 +65,7 @@ def start_generator():
 def stop_generator():
     message, status = node.stop_generator()
     return make_response(message, status)
-################### TESTING ##################
+
 @app.route('/update-transaction-pool', methods=[POST])
 def update_transaction_pool():
     message, status = node.update_transaction_pool(request.json)
