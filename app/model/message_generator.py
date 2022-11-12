@@ -13,7 +13,7 @@ class MessageGenerator():
         self.__generator_thread = None
         self.__log = log
         self.__key_manager = key_manager
-        self.__INTERVAL = 5
+        self.__INTERVAL = 2
         self.__ON_OFF_generator = False
 
     """
@@ -23,7 +23,7 @@ class MessageGenerator():
     def start_generator(self):
         self.__log.info(f"Message Generator is started")
         self.__generator_thread = threading.Thread(target=self.generation_process)
-        self.__generator_thread.run()
+        self.__generator_thread.start()
         return "Message Generator is started"
 
     """
