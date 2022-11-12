@@ -45,7 +45,8 @@ def send_message():
 
 @app.route('/verify-message-from-node', methods=[POST])
 def receive_message():
-    message, status = node.verify_message_from_node(request.json)
+    addressee_ip = request.remote_addr
+    message, status = node.verify_message_from_node(request.json, addressee_ip)
     return make_response(message, status)
 
 

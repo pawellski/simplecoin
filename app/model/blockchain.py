@@ -24,7 +24,7 @@ class Blockchain:
         # if file not contain blockchain, genesis block will be created
         if self.__blockchain_head is None:
             self.__log.info("Create first block...")
-            genesis_nonce = 438792
+            genesis_nonce = 195427
             genesis_data = [{'genesis_block': 'initial_message'}]
             self.__blockchain_head = Block(None, genesis_nonce, genesis_data, None)
             self.__save_one_block(self.__blockchain_head)
