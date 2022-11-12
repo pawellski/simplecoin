@@ -13,8 +13,8 @@ class MessageGenerator():
         self.__generator_thread = None
         self.__log = log
         self.__key_manager = key_manager
-        self.__INTERVAL = 2
-        self.__ON_OFF_generator = False
+        self.__INTERVAL = 5
+        self.__on_off_generator = False
 
     """
     Start generator by requesting to endpoint /start-generator
@@ -31,8 +31,8 @@ class MessageGenerator():
     Change value of ON/OFF flag
     """    
     def stop_generator(self):
-        if (self.__ON_OFF_generator):
-            self.__ON_OFF_generator = False
+        if (self.__on_off_generator):
+            self.__on_off_generator = False
             self.__log.info(f"Message Generator is stopped")
         return "Message Generator is stopped"  
 
@@ -42,8 +42,8 @@ class MessageGenerator():
     If ON/OFF flag is False than leave the loop
     """
     def generation_process(self):
-        self.__ON_OFF_generator = True
-        while self.__ON_OFF_generator:
+        self.__on_off_generator = True
+        while self.__on_off_generator:
             message, signed_message = self.__generate_new_message()
             self.__broadcast_transaction_message(message, signed_message)
             time.sleep(self.__INTERVAL)
@@ -61,8 +61,7 @@ class MessageGenerator():
     Broadcast plaintext and signed_message to others
     Call method to make requests
     """
-    def __broadcast_transaction_message(self, message, signed_message):   
-        
+    def __broadcast_transaction_message(self, message, signed_message):         
         body = { "signed_message": base64.b64encode(signed_message).decode('utf-8'),
                  "message":message
          }
@@ -77,14 +76,14 @@ class MessageGenerator():
     In foreach loop, calling method to make request to every ip that is in pub_key_list
     """
     def __requests_transaction_message_broadcast(self, request_data):
-            self.__log.info(f"Starting process for broadcasting transaction message")
+        self.__log.info(f"Starting process for broadcasting transaction message")
 
-            for el in self.__key_manager.get_pub_key_list()['entries']:
-                res = self.__request_transaction_message_broadcast(el['ip'], request_data)
-                if not res:
-                    self.__log.info(f"Transaction message broadcast process failed")
-                    return False, el['ip']
-            return True, None
+        for el in self.__key_manager.get_pub_key_list()['entries']:
+            res = self.__request_transaction_message_broadcast(el['ip'], request_data)
+            if not res:
+                self.__log.info(f"Transaction message broadcast process failed")
+                return False, el['ip']
+        return True, None
 
     """
     Make request to endpoint /update-transaction-pool for concrete node,
