@@ -26,9 +26,12 @@ class KeyManager:
         self.__get_keys()
         self.__init_network()
     
+    """
+    Fetch or generate keys if file not exist
+    """
     def __get_keys(self):
         keys = self.__read_keys()
-        if 'priv_key' not in keys or 'pub_key' not in keys:
+        if 'priv_key' not in keys or 'pub_key' not in keys or 'extra' not in keys:
             self.__log.info("generating keys...")
             keys = self.__generate_keys()
             self.__save_keys(keys)
@@ -36,19 +39,33 @@ class KeyManager:
             self.__log.info("loading keys...")
             self.__load_keys(keys)
 
+    """
+    Generate asymetric keys bases on ecdsa library,
+    moreover salt and iv vector are generated
+    """
     def __generate_keys(self):
+        # generate asymetric keys
         self.__priv_key = SigningKey.generate(curve=NIST384p)
         self.__pub_key = self.__priv_key.verifying_key
         keys = {}
         keys['pub_key'] = base64.b64encode(self.__pub_key.to_pem()).decode('utf-8')
+        # generate salt
         salt = get_random_bytes(16)
+        # create fixed key which is used to AES
         kdf = PBKDF2(self.__secret.encode('utf-8'), salt, dkLen=32)
+        # generate iv vector
         iv = get_random_bytes(16)
+        # create AES instance with CBC mode
         aes = AES.new(kdf, AES.MODE_CBC, iv)
         keys['priv_key'] = base64.b64encode(aes.encrypt(pad(self.__priv_key.to_pem(), 16))).decode('utf-8')
+        # save salt and iv vector together
         keys['extra'] = base64.b64encode(salt + iv).decode('utf-8')
         return keys
 
+    """
+    Load keys and extra from file,
+    reproduce keys from file to app 
+    """
     def __load_keys(self, keys):
         self.__pub_key = VerifyingKey.from_pem(base64.b64decode(keys['pub_key'].encode('utf-8')))
         salt = base64.b64decode(keys['extra'].encode('utf-8'))[0:16]
@@ -57,10 +74,16 @@ class KeyManager:
         aes = AES.new(kdf, AES.MODE_CBC, iv)
         self.__priv_key = SigningKey.from_pem(unpad(aes.decrypt(base64.b64decode(keys['priv_key'].encode('utf-8'))), 16).decode('utf-8'))
     
+    """
+    Save keys and extra to file
+    """
     def __save_keys(self, keys):
         with open(f"{self.__files_path}/{KEYS_FILENAME}", 'w') as file:
             json.dump(keys, file, indent=4)
 
+    """
+    Read keys and extra from file
+    """
     def __read_keys(self):
         try:
             with open(f"{self.__files_path}/{KEYS_FILENAME}", 'r') as file:
