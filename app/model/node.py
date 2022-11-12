@@ -52,44 +52,12 @@ class Node:
     def verify_blockchain(self):
         return self.__blockchain.verify_blockchain(), OK
 
-    def sign_transaction_message(self, request_data):
+    def start_generator(self):
         try:
-            return self.__key_manager.sign_transaction_message(request_data), OK
+            return self.__message_generator.start_generator(), OK
         except Exception as e:
             return str(e), ERROR
             
-
-    def broadcast_transaction_message(self, request_data):
-            try:
-                return self.__key_manager.broadcast_transaction_message(request_data), OK
-            except Exception as e:
-                return str(e), ERROR
-
-
-
-###########################
-    def update_transaction_pool(self, request_data):
-################### TESTING ##################            
-            try:
-                return self.__key_manager.update_transaction_pool(request_data), OK
-            except Exception as e:
-                return str(e), ERROR
-            return
-###########################      
-       
-################### TESTING ##################
-    def generate_transaction_message(self):
-            try:
-                return self.__message_generator.generate_new_message(), OK
-            except Exception as e:
-                return str(e), ERROR
-            return
-###########################            
-    def start_generator(self):
-            try:
-                return self.__message_generator.start_generator(), OK
-            except Exception as e:
-                return str(e), ERROR
     def start_generator(self, request):
         try:
             return self.__message_generator.start_generator(request), OK

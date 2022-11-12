@@ -51,10 +51,6 @@ def receive_message():
 def verify_blockchain():
     message, status = node.verify_blockchain()
     return make_response(message, status)
-
-@app.route('/sign-transaction-message', methods=[POST])
-def sign_transaction_message():
-    message, status = node.sign_transaction_message(request.json)
     
 @app.route('/start-generator', methods=[POST])
 def start_generator():
@@ -69,12 +65,4 @@ def stop_generator():
 @app.route('/update-transaction-pool', methods=[POST])
 def update_transaction_pool():
     message, status = node.update_transaction_pool(request.json)
-    return make_response(message, status)
-
-
-################### TESTING ##################
-
-@app.route('/generate-transaction-message', methods=[POST])
-def generate_transaction_message():
-    message, status = node.generate_transaction_message()
     return make_response(message, status)

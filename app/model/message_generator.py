@@ -14,8 +14,7 @@ class MessageGenerator():
     def __init__(self, log, key_manager):
         self.__generator_thread = None
         self.__log = log
-        self.__key_manager = key_manager
-        
+        self.__key_manager = key_manager   
         self.__generator_active = False
           
     """
