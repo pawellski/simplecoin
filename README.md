@@ -63,7 +63,7 @@ The message generator was implemented in *message_generator.py* file. It generat
   `POST /update-transaction-pool`
 
   content:
-  ```
+  ```json
   {
     "message": "<MESSAGE>",
     "signed_message": "<SIGNED_MESSAGE>"
