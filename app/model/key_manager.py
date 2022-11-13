@@ -92,6 +92,9 @@ class KeyManager:
         except FileNotFoundError as e:
             return {}
 
+    """
+    Initialization of nodes network
+    """
     def __init_network(self):
         self.__log.info("init network...")
         self.__pub_key_list['entries'].append({
@@ -99,12 +102,18 @@ class KeyManager:
             'pub_key': self.__pub_key.to_pem().decode('utf-8')
         })
 
+    """
+    Searching public key via ip
+    """
     def __get_pub_key_for_ip(self, ip_without_port):
         for entry in self.__pub_key_list['entries']:
             if ip_without_port in entry['ip']:
                 return entry['pub_key']
         return None
 
+    """
+    Sending update requests for specific node
+    """
     def __request_pub_key_list_update(self, ip):
         if ip != self.__ip:
             self.__log.info(f"Requesting pub key update for ip {ip}")
@@ -119,15 +128,24 @@ class KeyManager:
         self.__log.info(f"Ip matches host's ip, skipping")
         return True
 
+    """
+    Updating pub key list
+    """
     def __update_pub_key_list(self, new_pub_key_list):
         for entry in new_pub_key_list['entries']:
             if entry in self.__pub_key_list['entries']:
                 continue
             self.__pub_key_list['entries'].append(entry)
 
+    """
+    Override pub key list with new list
+    """
     def __override_pub_key_list(self, new_pub_key_list):
         self.__pub_key_list = new_pub_key_list
 
+    """
+    Calling method to send update requests for every node in foreach loop
+    """
     def __request_pub_key_list_updates(self):
         self.__log.info(f"Starting process for updating connected nodes' public key lists, node count: {len(self.__pub_key_list) - 1}") # minus current node's ip
         for el in self.__pub_key_list['entries']:
@@ -137,6 +155,9 @@ class KeyManager:
                 return False, el['ip']
         return True, None
 
+    """
+    Verification of message sender
+    """
     def __verify_sender(self, ip, signed_message, message):
         pub_key = self.__get_pub_key_for_ip(ip)
         if pub_key is None:
@@ -150,18 +171,33 @@ class KeyManager:
             self.__log.error(f"Veryfing massage failed, reason: {e}")
             return False
 
+    """
+    Formating to URL endpoint of specific node
+    """
     def format_ip(self, ip, endpoint):
         return f"{ip}/{endpoint}"
 
+    """
+    Signing message
+    """
     def sign_message(self, message):
         return self.__priv_key.sign(message.encode('utf-8'))
 
+    """
+    Getter for pub key list
+    """
     def get_pub_key_list(self):
         return self.__pub_key_list
 
+    """
+    Getter for own ip address 
+    """
     def get_own_ip(self):
         return self.__ip
 
+    """
+    Starting procedure of connecting new node to network, calling to /join endpoint
+    """
     def connect(self, request_data):
         ip = request_data['ip']
         self.__log.info(f"Received request to join new network, target node: {ip}")
@@ -179,6 +215,9 @@ class KeyManager:
             e.message = error_message
             raise
 
+    """
+    Joining new node to network, calling method to update others nodes pub key list
+    """
     def join(self, request_data):
         self.__log.info(f"Received request to join nodes to current network")
         try:
@@ -194,6 +233,9 @@ class KeyManager:
             raise Exception(f"Error updating list for address {ip}")
         return "Successfully added new node(s) to network"
 
+    """
+    Sending message procedure, signing message and sending to addressee 
+    """
     def send_message(self, request_data):
         ip = request_data['ip']
         message = request_data['message']
@@ -215,6 +257,9 @@ class KeyManager:
             e.message = f"Error encountered during call to receive message, error: {e}"
             raise
 
+    """
+    Receiving message procedure, verification of sender
+    """
     def receive_message(self, request_data, addressee_ip):
         signed_message = request_data['signed_message']
         plaintext = request_data['plaintext']
@@ -233,6 +278,9 @@ class KeyManager:
             e.message = f"Error encountered during veryfing message, error: {e}"
             raise
 
+    """
+    Updating pub key list procedure, overriding current pub key list
+    """
     def update(self, request_data):
         self.__log.info(f"Received request to update public key list")
         try:
