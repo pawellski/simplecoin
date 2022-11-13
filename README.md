@@ -49,6 +49,62 @@ The message generator was implemented in *message_generator.py* file. It generat
 
   `POST /stop-generator`
 
+- start miner
+
+  `POST /start-miner`
+    content: None
+
+- add element to transaction pool
+
+  `POST /update-transaction-pool`
+  content:
+  - {"message": "<MESSAGE>", "signed_message": "<SIGNED_MESSAGE>"}
+
+- get information about currently connected nodes
+
+  `GET /pub-key-list`
+  content: None
+
+- initiate connection to new node
+
+  `POST /connect`
+  content: {"ip": "<TARGET_NODE_IP>"}
+
+- join chosen network
+ 
+  `POST /join`
+  content: {"entries": [
+    {
+      "ip": "<IP_ADDR>",
+      "pub_key": "<PUBLIC_KEY>"
+    }
+  ]}
+
+- update current network information
+
+  `POST /update`
+  content: {"entries": [
+    {
+      "ip": "<IP_ADDR>",
+      "pub_key": "<PUBLIC_KEY>"
+    }
+  ]}
+
+- send new message to then be verified in another host
+
+  `POST /send-message-to-verification`
+  content: {
+    "message": "<MESSAGE>",
+    "ip": "<IP_ADDR>"  
+  }
+
+- Send encrypted message for verification
+  `POST /verify-message-from-node`
+  content: {
+    "signed_message": "<SIGNED_MESSAGE>",
+    "plaintext": "<PLAIN_TEXT>"  
+  }
+
 ---
 ## authors
 - Bieńkowski Mikołaj
