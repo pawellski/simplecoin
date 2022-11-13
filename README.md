@@ -35,75 +35,111 @@ The blockchain structure was implemented in *blockchain.py* file as linked list 
 
 The message generator was implemented in *message_generator.py* file. It generates the messages, signes them and broadcasts to other nodes in network. The default time interval, with the generation process is performed, is 5 seconds. Diffrent interval can be given in request body.   
 ### API:
-- blockhain verification
+- **blockhain verification**
 
   `GET /verify-blockchain`
 
-- start message generator
+  content: None
+
+- **start message generator**
 
   `POST /start-generator`
-    content [optional]:
-    - json format with body {"interval" : n}, where n is integer value that represents a time interval 
 
-- stop message generator
+    content [optional]:
+  json format with body {"interval" : n}, where n is integer value that represents a time interval 
+
+- **stop message generator**
 
   `POST /stop-generator`
 
-- start miner
+- **start miner**
 
   `POST /start-miner`
+
     content: None
 
-- add element to transaction pool
+- **add element to transaction pool**
 
   `POST /update-transaction-pool`
-  content:
-  - {"message": "<MESSAGE>", "signed_message": "<SIGNED_MESSAGE>"}
 
-- get information about currently connected nodes
+  content:
+  ```
+  {
+    "message": "<MESSAGE>",
+    "signed_message": "<SIGNED_MESSAGE>"
+  }
+  ```
+
+- **get information about currently connected nodes**
 
   `GET /pub-key-list`
+  
   content: None
 
-- initiate connection to new node
+- **initiate connection to new node**
 
   `POST /connect`
-  content: {"ip": "<TARGET_NODE_IP>"}
 
-- join chosen network
+  content: 
+  ```json
+  {
+    "ip": "<TARGET_NODE_IP>"
+  }
+  ```
+
+- **join chosen network**
  
   `POST /join`
-  content: {"entries": [
+
+  content: 
+  ```json
+  {"entries": [
     {
       "ip": "<IP_ADDR>",
       "pub_key": "<PUBLIC_KEY>"
     }
   ]}
+  ```
 
-- update current network information
+- **update current network information**
 
   `POST /update`
-  content: {"entries": [
-    {
-      "ip": "<IP_ADDR>",
-      "pub_key": "<PUBLIC_KEY>"
-    }
-  ]}
 
-- send new message to then be verified in another host
+  content: 
+  ```json
+  {
+    "entries": [
+      {
+        "ip": "<IP_ADDR>",
+        "pub_key": "<PUBLIC_KEY>"
+      },
+      ...
+    ]
+  }
+  ```
+
+- **send new message to then be verified in another host**
 
   `POST /send-message-to-verification`
-  content: {
+
+  content: 
+  ```json
+  {
     "message": "<MESSAGE>",
     "ip": "<IP_ADDR>"  
   }
+  ```
 
-- Send encrypted message for verification
+- **Send encrypted message for verification**
   `POST /verify-message-from-node`
-  content: {
+
+  content: 
+  ```json
+  {
     "signed_message": "<SIGNED_MESSAGE>",
     "plaintext": "<PLAIN_TEXT>"  
   }
+  ```
 
 ---
 ## authors
