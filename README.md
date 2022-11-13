@@ -45,12 +45,18 @@ The message generator was implemented in *message_generator.py* file. It generat
 
   `POST /start-generator`
 
-    content [optional]:
-  json format with body {"interval" : n}, where n is integer value that represents a time interval 
+  content [optional]:
+   ```json
+  {
+    "interval" : <NUMBER_OF_SECONDS>
+  }
+  ```
 
 - **stop message generator**
 
   `POST /stop-generator`
+  
+  content: None
 
 - **start miner**
 
