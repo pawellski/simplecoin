@@ -32,10 +32,22 @@ The second topic was verification of a signed message. You need to send a reques
 - add miner that searches candidate block and propagate it
 ### realization:
 The blockchain structure was implemented in *blockchain.py* file as linked list and bases on block class (implemented in *block.py*). Structure is responsible for adding candidate block to the blockchain, storing blockchain and reading it after start app.
+
+The message generator was implemented in *message_generator.py* file. It generates the messages, signes them and broadcasts to other nodes in network. The default time interval, with the generation process is performed, is 5 seconds. Diffrent interval can be given in request body.   
 ### API:
 - blockhain verification
 
   `GET /verify-blockchain`
+
+- start message generator
+
+  `POST /start-generator`
+    content [optional]:
+    - json format with body {"interval" : n}, where n is integer value that represents a time interval 
+
+- stop message generator
+
+  `POST /stop-generator`
 
 ---
 ## authors
