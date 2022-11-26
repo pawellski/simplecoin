@@ -190,6 +190,12 @@ class KeyManager:
         return self.__pub_key_list
 
     """
+    Getter for own pub key
+    """
+    def get_pub_key(self):
+        return self.__pub_key.to_pem()
+
+    """
     Getter for own ip address 
     """
     def get_own_ip(self):
