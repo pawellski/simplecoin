@@ -7,14 +7,15 @@ import logging
 import random
 import threading
 import time
-
+from transaction_tuples import OutputTuple
 
 DEFAULT_INTERVAL = 5
 class MessageGenerator():
-    def __init__(self, log, key_manager):
+    def __init__(self, log, key_manager, wallet):
         self.__generator_thread = None
         self.__log = log
-        self.__key_manager = key_manager   
+        self.__key_manager = key_manager 
+        self.__wallet = wallet  
         self.__generator_active = False
           
     """
@@ -53,63 +54,78 @@ class MessageGenerator():
         return "Message Generator is stopped"  
 
     """
-    Generate message and broadcast it to others in appropriate interval
+    Generate transaction and broadcast it to others in appropriate interval
     Set the __generator_active flag on True and call two methods in while loop with time break
     If __generator_active flag is False than leave the loop
     """
     def generation_process(self, INTERVAL):
         self.__generator_active = True
         while self.__generator_active:
-            message, signed_message = self.__generate_new_message()
-            self.__broadcast_transaction_message(message, signed_message)
+            transaction = self.__generate_transaction()
+            self.__broadcast_transaction(transaction)
             time.sleep(INTERVAL)
-
-    """
-    Create and sign new message
-    """
-    def __generate_new_message(self):
-        message = "message"+str(random.randint(0,1000))
-        signed_message = self.__key_manager.sign_message(message)
-        self.__log.info(f"Sucessfully generated and signed new transaction message")
-        return message, signed_message
     
-    """
-    Broadcast plaintext and signed_message to others
+    """ 
+    Broadcast ganerated transaction to others
     Call method to make requests
     """
-    def __broadcast_transaction_message(self, message, signed_message):         
-        body = { "signed_message": base64.b64encode(signed_message).decode('utf-8'),
-                 "message":message
-         }
+    def __broadcast_transaction(self, transaction):    
 
-        result, ip = self.__requests_transaction_message_broadcast(body)
+        body = { "transaction":transaction.to_dict() }
+
+        result, ip = self.__requests_transaction_broadcast(body)
         if not result:
-            raise Exception(f"Error broadcasting transaction message to {ip}")    
+            raise Exception(f"Error broadcasting transaction to {ip}")    
         else:
-            self.__log.info(f"Successfully broadcasted transaction message")
+            self.__log.info(f"Successfully broadcasted transaction")
 
     """
     In foreach loop, calling method to make request to every ip that is in pub_key_list
     """
-    def __requests_transaction_message_broadcast(self, request_data):
-        self.__log.info(f"Starting process for broadcasting transaction message")
+    def __requests_transaction_broadcast(self, request_data):
+        self.__log.info(f"Starting process for broadcasting transaction")
 
         for el in self.__key_manager.get_pub_key_list()['entries']:
-            res = self.__request_transaction_message_broadcast(el['ip'], request_data)
+            res = self.__request_transaction_broadcast(el['ip'], request_data)
             if not res:
-                self.__log.info(f"Transaction message broadcast process failed")
+                self.__log.info(f"Transaction broadcast process failed")
                 return False, el['ip']
         return True, None
 
     """
     Make request to endpoint /update-transaction-pool for concrete node,
-    with plaintext and signed message as a body
+    with transaction as a body
     """
-    def __request_transaction_message_broadcast(self, ip, request_data):
-        self.__log.info(f"Requesting transaction message broadcast for ip {ip}")
+    def __request_transaction_broadcast(self, ip, request_data):
+        self.__log.info(f"Requesting transaction broadcast for ip {ip}")
         try:
             res = post(self.__key_manager.format_ip(ip, '/update-transaction-pool'), json = request_data)
             return True if res.ok else False
         except Exception as e:
-            self.__log.error(f"Transaction message broadcast for ip {ip} failed, reason: {e}")
+            self.__log.error(f"Transaction broadcast for ip {ip} failed, reason: {e}")
             return False
+
+    """
+    Check balance of the account
+    Create output -  read current owner, pick addressee and amount to transfer, calculate the change 
+    Create new transaction
+    """
+    def __generate_transaction(self):
+        pub_key_list = self.__key_manager.get_pub_key_list()['entries']['pub_key']
+        fee = 0.002
+        is_coinbase = False
+        try:
+            balance = self.__wallet.check_balance()        
+            new_amount = round(random.uniform(0, balance), 4)
+            output = OutputTuple (
+                        self.__key_manager.get_pub_key(),
+                        random.choice(pub_key_list),
+                        new_amount,
+                        balance - (new_amount + fee)
+                    )
+            transaction = self.__wallet.makeup_transaction(is_coinbase, output, fee)
+            self.__log.info(f"Sucessfully generated new transaction")
+            return transaction
+        except Exception as e:
+            self.__log.error(f"Transaction generation failed, reason: {e}")
+            return None
