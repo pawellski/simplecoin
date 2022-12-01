@@ -10,6 +10,7 @@ import time
 from transaction_tuples import OutputTuple
 
 DEFAULT_INTERVAL = 5
+FEE = 0.002
 class MessageGenerator():
     def __init__(self, log, key_manager, wallet):
         self.__generator_thread = None
@@ -112,7 +113,6 @@ class MessageGenerator():
     """
     def __generate_transaction(self):
         pub_key_list = self.__key_manager.get_pub_key_list()['entries']['pub_key']
-        fee = 0.002
         is_coinbase = False
         try:
             balance = self.__wallet.check_balance()        
@@ -123,7 +123,7 @@ class MessageGenerator():
                         new_amount,
                         balance - (new_amount + fee)
                     )
-            transaction = self.__wallet.makeup_transaction(is_coinbase, output, fee)
+            transaction = self.__wallet.makeup_transaction(is_coinbase, output, FEE)
             self.__log.info(f"Sucessfully generated new transaction")
             return transaction
         except Exception as e:
