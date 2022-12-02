@@ -11,6 +11,10 @@ class Wallet:
         self.__key_manager = key_manager
         self.__blockchain = blockchain
 
+    """
+    Iterate through the entire blockchain and every transaction
+    Return transactions list which contains output for given pub_key or self
+    """
     def __get_output_transactions(self, pub_key):
         if pub_key is None:
             pub_key = self.__key_manager.get_pub_key_str()
@@ -24,6 +28,9 @@ class Wallet:
             block = block.get_previous_block()
         return transactions
 
+    """
+    Remove transactions from list which exists in input
+    """
     def __remove_input_transactions(self, transactions):
         block = self.__blockchain.get_blockchain_head()
         while block is not None:
@@ -33,6 +40,10 @@ class Wallet:
                         del transactions[i.get_previous_id()]
             block = block.get_previous_block()
 
+    """
+    Return unspent outputs for given public key
+    or collect own unspent outputs
+    """
     def get_unspent_outputs(self, pub_key=None):
         if pub_key is None:
             pub_key = self.__key_manager.get_pub_key_str()
@@ -46,6 +57,9 @@ class Wallet:
                 unspent_outputs[t.get_id()] = t.get_output().get_current_amount()
         return unspent_outputs
 
+    """
+    Return own current balance
+    """
     def check_balance(self):
         unspent_outputs = self.get_unspent_outputs()
         balance = 0.0
@@ -53,6 +67,9 @@ class Wallet:
             balance += amount
         return balance
 
+    """
+    Create new transaction, sign and return it
+    """
     def makeup_transaction(self, is_coinbase, output, fee):
         inputs = []
         if not is_coinbase:
