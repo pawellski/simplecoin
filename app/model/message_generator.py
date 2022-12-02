@@ -7,7 +7,7 @@ import logging
 import random
 import threading
 import time
-from transaction_tuples import OutputTuple
+from model.transaction_tuples import OutputTuple
 
 DEFAULT_INTERVAL = 5
 FEE = 0.002
@@ -65,14 +65,14 @@ class MessageGenerator():
             transaction = self.__generate_transaction()
             self.__broadcast_transaction(transaction)
             time.sleep(INTERVAL)
-    
+
     """ 
     Broadcast ganerated transaction to others
     Call method to make requests
     """
     def __broadcast_transaction(self, transaction):    
 
-        body = { "transaction":transaction.to_dict() }
+        body = transaction.to_dict(True) 
 
         result, ip = self.__requests_transaction_broadcast(body)
         if not result:
@@ -112,16 +112,16 @@ class MessageGenerator():
     Create new transaction
     """
     def __generate_transaction(self):
-        pub_key_list = self.__key_manager.get_pub_key_list()['entries']['pub_key']
+        pub_key_list = [entry['pub_key'] for entry in self.__key_manager.get_pub_key_list()['entries']]
         is_coinbase = False
         try:
             balance = self.__wallet.check_balance()        
             new_amount = round(random.uniform(0, balance), 4)
             output = OutputTuple (
-                        self.__key_manager.get_pub_key(),
+                        base64.b64encode(self.__key_manager.get_pub_key()).decode('utf-8'),
                         random.choice(pub_key_list),
                         new_amount,
-                        balance - (new_amount + fee)
+                        balance - (new_amount + FEE)
                     )
             transaction = self.__wallet.makeup_transaction(is_coinbase, output, FEE)
             self.__log.info(f"Sucessfully generated new transaction")
