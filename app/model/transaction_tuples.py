@@ -1,4 +1,4 @@
 from collections import namedtuple
 
-InputTuple  = namedtuple("InputTuple", "previous_id current_owner amount")
-OutputTuple = namedtuple("OutputTuple", "new_owner current_owner_change new_amount current_amount")
+InputTuple = namedtuple("InputTuple", "previous_id current_owner amount")
+OutputTuple = namedtuple("OutputTuple", "new_owner current_owner new_amount current_amount")
