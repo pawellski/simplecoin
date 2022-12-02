@@ -1,41 +1,48 @@
 from hashlib import sha256
 import uuid
 
-from model.transaction_tuples import OutputTuple
+from model.transaction_tuples import InputTuple, OutputTuple
 
 class Transaction:
+    """
+    Create transaction object from dict (static method)
+    """
     def from_dict_to_transaction(dict):
         new_owner = dict['output']['new_owner']
-        current_change = dict['output']['current_amount']
+        current_owner = dict['output']['current_owner']
         new_amount = dict['output']['new_amount']
         current_amount = dict['output']['current_amount']
-        output = OutputTuple(new_owner, current_change, new_amount, current_amount)
-        transaction = Transaction(dict['is_coinbase'], dict['inputs'], output, dict['fee'], id=dict['id'])
-        transaction.set_signature(dict['signature'])
+        output = OutputTuple(new_owner, current_owner, new_amount, current_amount)
+        inputs = []
+        for i in dict['inputs']:
+            inputs.append(InputTuple(i['previous_id'], i['current_owner'], i['amount']))
+        transaction = Transaction(dict['is_coinbase'], inputs, output, dict['fee'], id=dict['id'], signature=dict['signature'])
         return transaction
 
-    def __init__(self, is_coinbase, inputs, output, fee, id=None):
+    def __init__(self, is_coinbase, inputs, output, fee, id=None, signature=None):
         if id is None:
             self.__id = str(uuid.uuid4())
         else:
             self.__id = id
         self.__is_coinbase = is_coinbase
-        if self.__is_coinbase is True:
-            self.__inputs = []
-        else:
-            self.__inputs = []
+        self.__inputs = []
+        if self.__is_coinbase is False:
             self.__read_inputs(inputs)
-        self.__output = self.Output(output.new_owner, output.current_owner_change, output.new_amount, output.current_amount)
+        self.__output = self.Output(output.new_owner, output.current_owner, output.new_amount, output.current_amount)
         self.__fee = fee
-        self.__signature = None
+        self.__signature = signature
 
+    """
+    Map inputs (InputTuple) to Input class
+    """
     def __read_inputs(self, inputs):
         for i in inputs:
             self.__inputs.append(self.Input(i.previous_id, i.current_owner, i.amount))
 
+    """
+    Get list of inputs object to dict
+    """
     def __get_inputs_to_dict(self):
-        if self.__inputs is None:
-            return []
         inputs = []
         for i in self.__inputs:
             inputs.append(i.to_dict())
@@ -43,6 +50,9 @@ class Transaction:
 
     def get_id(self):
         return self.__id
+
+    def is_coinbase(self):
+        return self.__is_coinbase
 
     def get_inputs(self):
         return self.__inputs
@@ -53,16 +63,25 @@ class Transaction:
     def get_fee(self):
         return self.__fee
 
-    def set_signature(self, signature):
-        self.__signature = signature
-
     def get_signature(self):
         return self.__signature
 
+    """
+    Caculate hash for transaction
+    excluding signature field from dict
+    """
     def get_hash(self):
         transaction = str(self.to_dict())
         return sha256(transaction.encode('utf-8')).hexdigest()
 
+    def set_signature(self, signature):
+        self.__signature = signature
+
+    """
+    Return transaction as a dictionary
+    If include_signature parameter is False,
+    the signature field will be skipped
+    """
     def to_dict(self, include_signature=False):
         transaction = {}
         transaction['id'] = self.__id
@@ -74,18 +93,23 @@ class Transaction:
             transaction['signature'] = self.__signature
         return transaction
 
-
+    """
+    The Output class represents output from transaction
+    """
     class Output:
-        def __init__(self, new_owner, current_owner_change_pub_key, new_amount, current_amount):
+        def __init__(self, new_owner, current_owner, new_amount, current_amount):
             self.__new_owner = new_owner
-            self.__current_owner_change_pub_key = current_owner_change_pub_key
+            self.__current_owner = current_owner
             self.__new_amount = new_amount
             self.__current_amount = current_amount
 
+        """
+        Return Output as a dictionary
+        """
         def to_dict(self):
             output = {}
             output['new_owner'] = self.__new_owner
-            output['current_owner_change_pub_key'] = self.__current_owner_change_pub_key
+            output['current_owner'] = self.__current_owner
             output['new_amount'] = self.__new_amount
             output['current_amount'] = self.__current_amount
             return output
@@ -93,8 +117,8 @@ class Transaction:
         def get_new_owner(self):
             return self.__new_owner
 
-        def get_current_owner_change_pub_key(self):
-            return self.__current_owner_change_pub_key
+        def get_current_owner(self):
+            return self.__current_owner
 
         def get_new_amount(self):
             return self.__new_amount
@@ -102,13 +126,18 @@ class Transaction:
         def get_current_amount(self):
             return self.__current_amount
 
-
+    """
+    The Input class represents output from transaction
+    """
     class Input:
         def __init__(self, previous_id, current_owner, amount):
             self.__previous_id = previous_id
             self.__current_owner = current_owner
             self.__amount = amount
 
+        """
+        Return Input as a dictionary
+        """
         def to_dict(self):
             input = {}
             input['previous_id'] = self.__previous_id
