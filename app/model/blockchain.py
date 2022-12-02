@@ -1,12 +1,13 @@
 from hashlib import sha256
+from model.genesis_data import GENESIS_DATA
+from model.transaction import Transaction
 from model.block import Block
 import json
 
 
 BLOCKCHAIN_FILENAME = 'blockchain.txt'
 SHA_SIZE = 256
-
-
+GENESIS_DATA_FILENAME = 'genesis_data.txt'
 class Blockchain:
     def __init__(self, files_path, log, difficulty_bits):
         self.__log = log
@@ -24,9 +25,16 @@ class Blockchain:
         # if file not contain blockchain, genesis block will be created
         if self.__blockchain_head is None:
             self.__log.info("Create first block...")
-            genesis_nonce = 195427
-            genesis_data = [{'genesis_block': 'initial_message'}]
-            self.__blockchain_head = Block(None, genesis_nonce, genesis_data, None)
+            transactions = []
+            for t in GENESIS_DATA['data']:
+                transactions.append(Transaction.from_dict_to_transaction(t))
+            self.__blockchain_head = Block(
+                None,
+                GENESIS_DATA['header']['nonce'],
+                transactions,
+                None
+            )
+            self.__log.info(self.__blockchain_head.get_data().get_transactions())
             self.__save_one_block(self.__blockchain_head)
         else:
             self.__log.info("Blockchain was loaded")
@@ -59,7 +67,7 @@ class Blockchain:
         block = Block (
             json_block["header"]["previous_block_hash"],
             json_block["header"]["nonce"],
-            json_block["data"],
+            [Transaction.from_dict_to_transaction(t) for t in json_block["data"]],
             self.__blockchain_head
         )
         self.__blockchain_head = block
@@ -114,14 +122,14 @@ class Blockchain:
         if block_dict is not None:
             block = Block(
                 previous_block_hash=block_dict['header']['previous_block_hash'],
-                transactions=block_dict['data'],
+                transactions=[Transaction.from_dict_to_transaction(t) for t in block_dict['data']],
                 nonce=block_dict['header']['nonce'],
                 previous_block=None
             )
         self.__log.info("Saving new candidate")
         # add new block (head) to blockchain if validation is correct
         if self.__valid_block(block, self.__blockchain_head):
-            self.__log.info("New candidate validated")
+            # self.__log.info("New candidate validated")
             block.set_previous_block(self.__blockchain_head)
             self.__blockchain_head = block
             self.__save_one_block(block)

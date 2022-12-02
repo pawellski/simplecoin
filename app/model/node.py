@@ -1,4 +1,7 @@
 from threading import Thread
+from model.block import Block
+from model.transaction_tuples import OutputTuple
+from model.wallet import Wallet
 from model.key_manager import KeyManager
 from model.message_generator import MessageGenerator
 from model.blockchain import Blockchain
@@ -8,15 +11,16 @@ import json
 OK = 200
 ERROR = 400
 
-DIFFICULTY_BITS = 20
-
+DIFFICULTY_BITS = 19
+MINER_REWARD = 0.005
 
 class Node:
     def __init__(self, secret, files_path, log):
         self.__key_manager = KeyManager(secret, files_path, log)
-        self.__message_generator = MessageGenerator(log, self.__key_manager)
         self.__blockchain = Blockchain(files_path, log, DIFFICULTY_BITS)
-        self.__miner = Miner(log, DIFFICULTY_BITS, self.__blockchain, self.__key_manager)
+        self.__wallet = Wallet(self.__key_manager, self.__blockchain, log)
+        self.__message_generator = MessageGenerator(log, self.__key_manager, self.__wallet)
+        self.__miner = Miner(log, DIFFICULTY_BITS, self.__blockchain, self.__key_manager, self.__wallet, MINER_REWARD)
         self.__current_candidate = None
 
     def get_pub_key_list(self):
@@ -75,6 +79,24 @@ class Node:
             return self.__miner.append_transaction(request_data), OK
         except Exception as e:
             return str(e), ERROR
+
+    def init_blockchain(self):
+        transactions = []
+        for entry in self.__key_manager.get_pub_key_list()['entries']:
+            transactions.append(
+                self.__wallet.makeup_transaction(
+                    True,
+                    OutputTuple(
+                        entry['pub_key'],
+                        entry['pub_key'],
+                        100,
+                        0
+                    ),
+                    0
+                )
+            )
+        init_block = self.__miner.proof_of_work(transactions)
+        self.__blockchain.add_block(init_block)
 
     def verify_and_save_candidate(self, request_data):
         self.__current_candidate = request_data
