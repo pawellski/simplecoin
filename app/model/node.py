@@ -110,6 +110,10 @@ class Node:
         self.__miner.stop_miner()
         return "Miner paused", OK
 
+    def get_current_balance(self):
+        balance = json.dumps({'current_balance': self.__wallet.check_balance()})
+        return balance, OK
+
     def __verify_and_save_candidate(self):
         request_data = self.__current_candidate
         block_added = self.__blockchain.add_block(block_dict=request_data)

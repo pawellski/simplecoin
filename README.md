@@ -21,8 +21,6 @@ In order to add a new node to the network, you should send request on */connect*
 In order to display public keys list, you should send request on */pub-key-list* selected node endpoint.
 
 The second topic was verification of a signed message. You need to send a request to */send-message* endpoint and provide a json which consisting of two keys -- docker ip address (of the node which recives and verifies the message) and the message (plain text). The endpoint returns a response from the node that performed the verification.
-### API:
-
 
 ---
 ## second milestone
@@ -142,7 +140,8 @@ The message generator was implemented in *message_generator.py* file. It generat
   }
   ```
 
-- **Send encrypted message for verification**
+- **send encrypted message for verification**
+
   `POST /verify-message-from-node`
 
   content: 
@@ -152,6 +151,12 @@ The message generator was implemented in *message_generator.py* file. It generat
     "plaintext": "<PLAIN_TEXT>"  
   }
   ```
+
+- **check own current balance**
+
+  `GET /check-balance`
+
+  content: None
 
 ---
 ## authors
