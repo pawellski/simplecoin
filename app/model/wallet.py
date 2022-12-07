@@ -31,12 +31,12 @@ class Wallet:
     """
     Remove transactions from list which exists in input
     """
-    def __remove_input_transactions(self, transactions):
+    def __remove_input_transactions(self, transactions, pub_key):
         block = self.__blockchain.get_blockchain_head()
         while block is not None:
             for t in block.get_data().get_transactions():
                 for i in t.get_inputs(): 
-                    if i.get_previous_id() in transactions.keys():
+                    if i.get_previous_id() in transactions.keys() and pub_key == i.get_current_owner():
                         del transactions[i.get_previous_id()]
             block = block.get_previous_block()
 
@@ -49,7 +49,7 @@ class Wallet:
             pub_key = self.__key_manager.get_pub_key_str()
         unspent_outputs = {}
         transactions = self.__get_output_transactions(pub_key)
-        self.__remove_input_transactions(transactions)
+        self.__remove_input_transactions(transactions, pub_key)
         for t in transactions.values():
             if t.get_output().get_new_owner() == pub_key and t.get_output().get_new_amount() > 0:
                 unspent_outputs[t.get_id()] = t.get_output().get_new_amount()

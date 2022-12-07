@@ -118,3 +118,7 @@ class Node:
         request_data = self.__current_candidate
         block_added = self.__blockchain.add_block(block_dict=request_data)
         self.__miner.reset_miner_after_new_candidate_request(block_added)
+
+    def get_block_count(self):
+        count = self.__blockchain.get_block_count()
+        return count, OK

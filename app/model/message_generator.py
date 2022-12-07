@@ -1,4 +1,5 @@
 import base64, json
+from decimal import Decimal
 from requests import post
 from os import environ
 import base64, json
@@ -112,16 +113,16 @@ class MessageGenerator():
     Create new transaction
     """
     def __generate_transaction(self):
-        pub_key_list = [entry['pub_key'] for entry in self.__key_manager.get_pub_key_list()['entries']]
+        pub_key_list = [entry['pub_key'] for entry in self.__key_manager.get_pub_key_list()['entries'] if entry['pub_key'] != self.__key_manager.get_pub_key_str()]
         is_coinbase = False
         try:
-            balance = self.__wallet.check_balance()        
-            new_amount = round(random.uniform(0, balance), 4)
+            balance = self.__wallet.check_balance()
+            new_amount = round(random.uniform(0, balance - FEE), 3)
             output = OutputTuple (
-                        base64.b64encode(self.__key_manager.get_pub_key()).decode('utf-8'),
                         random.choice(pub_key_list),
+                        self.__key_manager.get_pub_key().decode('utf-8'),
                         new_amount,
-                        balance - (new_amount + FEE)
+                        round(balance - new_amount - FEE, 3)
                     )
             transaction = self.__wallet.makeup_transaction(is_coinbase, output, FEE)
             self.__log.info(f"Sucessfully generated new transaction")

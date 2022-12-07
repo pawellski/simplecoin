@@ -1,4 +1,5 @@
 from hashlib import sha256
+from time import time
 from model.genesis_data import GENESIS_DATA
 from model.transaction import Transaction
 from model.block import Block
@@ -14,6 +15,7 @@ class Blockchain:
         self.__files_path = files_path
         self.__blockchain_head = None
         self.__target = 2 ** (SHA_SIZE - difficulty_bits)
+        self.__time = time()
         self.__get_blockchain()
 
     """
@@ -119,6 +121,9 @@ class Blockchain:
         return True
 
     def add_block(self, block=None, block_dict=None):
+        new_time = time()
+        self.__log.info(f'New candidate await time: {new_time - self.__time}')
+        self.__time = new_time
         if block_dict is not None:
             block = Block(
                 previous_block_hash=block_dict['header']['previous_block_hash'],
@@ -156,3 +161,11 @@ class Blockchain:
 
     def get_previous_block(self, block):
         return block.get_previous_block()
+
+    def get_block_count(self):
+        count = 0
+        current_block = self.get_blockchain_head()
+        while current_block is not None:
+            count += 1
+            current_block = current_block.get_previous_block()
+        return {"count": count}

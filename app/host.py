@@ -91,7 +91,14 @@ def stop_mining():
     message, status = node.stop_miner()
     return make_response(message, status)
 
+
 @app.route('/current-balance', methods=[GET])
 def get_current_balance():
     message, status = node.get_current_balance()
+    return make_response(message, status)
+
+
+@app.route('/get-block-count', methods=[GET])
+def get_block_count():
+    message, status = node.get_block_count()
     return make_response(message, status)
