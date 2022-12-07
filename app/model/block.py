@@ -28,7 +28,7 @@ class Block:
     def to_dict(self):
         block = {}
         block['header'] = self.__header.to_dict()
-        block['data'] = self.__data.get_transactions()
+        block['data'] = self.__data.to_dict()
         return block
 
     """
@@ -81,3 +81,6 @@ class Block:
 
         def clear_transactions(self):
             self.__transactions = []
+
+        def to_dict(self):
+            return [t.to_dict(True) for t in self.__transactions]

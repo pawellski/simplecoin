@@ -160,6 +160,9 @@ class KeyManager:
     """
     def __verify_sender(self, ip, signed_message, message):
         pub_key = self.__get_pub_key_for_ip(ip)
+        return self.verify_signature(pub_key, signed_message, message)
+
+    def verify_signature(self, pub_key, signed_message, message):
         if pub_key is None:
             return False
         try:
@@ -188,6 +191,18 @@ class KeyManager:
     """
     def get_pub_key_list(self):
         return self.__pub_key_list
+
+    """
+    Getter for own pub key
+    """
+    def get_pub_key(self):
+        return self.__pub_key.to_pem()
+    
+    """
+    Getter for own pub key as string
+    """
+    def get_pub_key_str(self):
+        return self.__pub_key.to_pem().decode('utf-8')
 
     """
     Getter for own ip address 
