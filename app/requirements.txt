@@ -3,3 +3,4 @@ Werkzeug
 pycryptodome
 ecdsa
 requests
+collections
