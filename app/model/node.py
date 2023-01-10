@@ -116,8 +116,14 @@ class Node:
 
     def __verify_and_save_candidate(self):
         request_data = self.__current_candidate
-        block_added = self.__blockchain.add_block(block_dict=request_data)
-        self.__miner.reset_miner_after_new_candidate_request(block_added)
+        block_valid, is_orphan = self.__blockchain.check_block(block_dict=request_data)                  #DONE
+        if block_valid:
+            duplicated_transaction = self.__miner.init_addition_of_candidate(block_dict=request_data)    #TODO - filtration
+            if is_orphan:           
+                self.__blockchain.add_to_orphan_list(block_dict=request_data)                            #DONE
+            else:
+                self.__blockchain.add_block(block_dict=request_data)                                     #TODO
+            self.__miner.reset_miner_after_new_candidate_request(is_orphan)                              #DONE
 
     def get_block_count(self):
         count = self.__blockchain.get_block_count()

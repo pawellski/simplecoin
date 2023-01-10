@@ -51,18 +51,35 @@ class Miner:
             self.__log.error(f'Error appending transaction: {e}')
         return "Transaction appended"
 
+    def init_addition_of_candidate(self,block_dict):
+        self.__stop_miner_process()
+        duplicated_transaction = self.__filter_transaction_pool(block_dict)
+        return duplicated_transaction
+
+    def __filter_transaction_pool(self, block_dict):
+        duplicated_transaction = []
+        transactions_from_new_candidate=[Transaction.from_dict_to_transaction(t) for t in block_dict['data']],
+        
+        for transaction_old in self.__transaction_pool:
+            for transaction_new in transactions_from_new_candidate:
+                if transaction_new == transaction_old:
+                    duplicated_transaction.append(transaction_old)
+                    break
+
+        return duplicated_transaction    
+
     '''
     Update head block after new candidate gets appended
     '''
-    def reset_miner_after_new_candidate_request(self, block_added: bool):
-        if block_added:
-            self.__log.info("New block added, resetting miner")
-            self.__reset_miner_process(
-                self.__blockchain
-                    .get_blockchain_head()
-                    .get_data()
-                    .get_transactions()
-            )
+    def reset_miner_after_new_candidate_request(self, is_orphan):
+        if not is_orphan:
+                self.__log.info("New block added, resetting miner")
+                self.__reset_miner_process(
+                    self.__blockchain
+                        .get_blockchain_head()
+                        .get_data()
+                        .get_transactions()
+                )
         else:
             self.__reset_miner_process()
 
