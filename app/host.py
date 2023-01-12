@@ -1,6 +1,6 @@
-from flask import Flask, request, make_response
+from flask import Flask, request, make_response, render_template
 from model.node import Node
-import os
+import os, json
 
 SECRET = "SECRET"
 FILES_PATH = "FILES_PATH"
@@ -102,3 +102,8 @@ def get_current_balance():
 def get_block_count():
     message, status = node.get_block_count()
     return make_response(message, status)
+
+@app.route('/view')
+def visualize():
+    tree_struct = node.visualize()
+    return render_template('template.html', tree_struct=json.dumps(tree_struct))    
