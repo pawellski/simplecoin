@@ -166,41 +166,42 @@ class Blockchain:
                 return False, False
 
     def add_to_orphan_list(self, block_dict):
-        block = Block(
-            previous_block_hash=block_dict['header']['previous_block_hash'],
-            transactions=[Transaction.from_dict_to_transaction(t) for t in block_dict['data']],
-            nonce=block_dict['header']['nonce'],
-            previous_block=None
-        )
+        if block_dict is not None:
+            block = Block(
+                previous_block_hash=block_dict['header']['previous_block_hash'],
+                transactions=[Transaction.from_dict_to_transaction(t) for t in block_dict['data']],
+                nonce=block_dict['header']['nonce'],
+                previous_block=None
+            )
 
-        has_family, is_parent, is_child, orphan_blocks_to_add, orphan_blocks_to_remove = self.__is_part_of_family(block)
-        if has_family:
-            for block_to_add in orphan_blocks_to_add:
-                self.__orphan_list.append(block_to_add)
-                        
-            for block_to_remove in orphan_blocks_to_remove:
-                self.__orphan_list.remove(block_to_remove)
-
-            #5. Check if new block is a parent and child - check parent of head and root block
-            if is_parent and is_child:
-                orphan_blocks_to_remove = []
-                for orphan_head in self.__orphan_list:
-                    for el in self.__orphan_list:
-                        orphan_block = el
-                        if orphan_head.get_hash() == orphan_block.get_header().get_previous_block_hash():
-                            orphan_blocks_to_remove.append(orphan_head)
-                            break
-                        while orphan_block is not None:
-                            orphan_block = orphan_block.get_previous_block()
-                            if orphan_block.get_previous_block() == None:
-                                if orphan_head.get_hash() == orphan_block.get_header().get_previous_block_hash():
-                                    orphan_blocks_to_remove.append(orphan_head)                        
-
+            has_family, is_parent, is_child, orphan_blocks_to_add, orphan_blocks_to_remove = self.__is_part_of_family(block)
+            if has_family:
+                for block_to_add in orphan_blocks_to_add:
+                    self.__orphan_list.append(block_to_add)
+                            
                 for block_to_remove in orphan_blocks_to_remove:
                     self.__orphan_list.remove(block_to_remove)
-                self.__log.info(f"Orphan list has been filtred through blocks that was parent and child")
-        else:
-            self.__orphan_list.append(block)
+
+                #5. Check if new block is a parent and child - check parent of head and root block
+                if is_parent and is_child:
+                    orphan_blocks_to_remove = []
+                    for orphan_head in self.__orphan_list:
+                        for el in self.__orphan_list:
+                            orphan_block = el
+                            if orphan_head.get_hash() == orphan_block.get_header().get_previous_block_hash():
+                                orphan_blocks_to_remove.append(orphan_head)
+                                break
+                            while orphan_block is not None:
+                                orphan_block = orphan_block.get_previous_block()
+                                if orphan_block.get_previous_block() == None:
+                                    if orphan_head.get_hash() == orphan_block.get_header().get_previous_block_hash():
+                                        orphan_blocks_to_remove.append(orphan_head)                        
+
+                    for block_to_remove in orphan_blocks_to_remove:
+                        self.__orphan_list.remove(block_to_remove)
+                    self.__log.info(f"Orphan list has been filtred through blocks that was parent and child")
+            else:
+                self.__orphan_list.append(block)
 
     def  __is_part_of_family(self, new_block):   
         orphan_blocks_to_add = []

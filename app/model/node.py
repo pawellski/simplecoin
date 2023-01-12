@@ -128,3 +128,18 @@ class Node:
     def get_block_count(self):
         count = self.__blockchain.get_block_count()
         return count, OK
+
+    def visualize(self):
+        tree_struct = []
+        block = self.__blockchain.get_blockchain_head()
+        while block is not None:
+            message = 'Some text to display at the bottom of the block' 
+            item = {'name': block.get_hash(), # to jest ID bloku
+                    'manager': block.get_header().get_previous_block_hash(), # to jest ID rodzica - jeżeli będzie kilka elementów listy, którzy mają tego samego rodzica, to wyświetli forka.
+                    'toolTip': '',
+                    'body': block.get_header().to_dict(), #json.dumps(block.to_dict()), # Generalnie to jest to co jest najbardziej widoczne
+                    'message': message # to jest to na czerwono na dole bloku
+                    }
+            tree_struct.append(item)        
+            block = block.get_previous_block()
+        return tree_struct
