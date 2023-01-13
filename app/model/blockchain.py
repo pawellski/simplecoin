@@ -210,7 +210,7 @@ class Blockchain:
             for orphan_head in self.__orphan_list:
                 #1
                 if orphan_head.get_previous_block() == None and \
-                    new_block.get_hash() == orphan_head.orphan_block.get_header().get_previous_block_hash():
+                    new_block.get_hash() == orphan_head.get_header().get_previous_block_hash():
                     self.__log.info(f"New OrphanBlock is parent of block in orphan list")
                     orphan_block.set_previous_block(new_block)
                     is_parent = True
