@@ -118,7 +118,7 @@ class Node:
         request_data = self.__current_candidate
         block_valid, is_orphan, block = self.__blockchain.check_block(block_dict=request_data)  #DONE
         if block_valid:
-            duplicated_transaction = self.__miner.init_addition_of_candidate(block)             #TODO - filtration
+            duplicated_transaction = self.__miner.init_addition_of_candidate(request_data)             #TODO - filtration
             if is_orphan:           
                 self.__blockchain.add_to_orphan_list(block)                                     #DONE
             else:
@@ -131,7 +131,7 @@ class Node:
 
     def visualize_blockchain(self):
         tree_struct = []
-        blockchain_head = self.__blockchain.get_blockchain_head()
+        blockchain_head = self.__blockchain.get_blockchain_head_list()
         for head in blockchain_head:
             block = head
             while block is not None:

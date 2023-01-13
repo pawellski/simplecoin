@@ -42,38 +42,38 @@ class Blockchain:
         else:
             self.__log.info("Blockchain was loaded")
 
-    # """
-    # Fetch or create blockchain after launch app 
-    # """
-    # def __read_blockchain(self):
-    #     try:
-    #         with open(f"{self.__files_path}/{BLOCKCHAIN_FILENAME}", 'r') as file:
-    #             json_str = ''
-    #             for line in file.read().splitlines():
-    #                 # every block is separated by hash character
-    #                 if line == '#':
-    #                     # add block as a head to blockchain
-    #                     self.__set_head_block(json_str)
-    #                     json_str = ''
-    #                 else:
-    #                     json_str += line.strip()
-    #     except FileNotFoundError:
-    #         self.__log.debug("Blockchain file {self.__files_path}/{BLOCKCHAIN_FILENAME} not found")
-    #     except json.decoder.JSONDecodeError:
-    #         self.__log.debug("Incorrect format of json")
+    """
+    Fetch or create blockchain after launch app 
+    """
+    def __read_blockchain(self):
+        try:
+            with open(f"{self.__files_path}/{BLOCKCHAIN_FILENAME}", 'r') as file:
+                json_str = ''
+                for line in file.read().splitlines():
+                    # every block is separated by hash character
+                    if line == '#':
+                        # add block as a head to blockchain
+                        self.__set_head_block(json_str)
+                        json_str = ''
+                    else:
+                        json_str += line.strip()
+        except FileNotFoundError:
+            self.__log.debug("Blockchain file {self.__files_path}/{BLOCKCHAIN_FILENAME} not found")
+        except json.decoder.JSONDecodeError:
+            self.__log.debug("Incorrect format of json")
 
-    # """
-    # Create block after reading and set as a head
-    # """
-    # def __set_head_block(self, json_str_block):
-    #     json_block = json.loads(json_str_block)
-    #     block = Block (
-    #         json_block["header"]["previous_block_hash"],
-    #         json_block["header"]["nonce"],
-    #         [Transaction.from_dict_to_transaction(t) for t in json_block["data"]],
-    #         self.__blockchain_head
-    #     )
-    #     self.__blockchain_head = block
+    """
+    Create block after reading and set as a head
+    """
+    def __set_head_block(self, json_str_block):
+        json_block = json.loads(json_str_block)
+        block = Block (
+            json_block["header"]["previous_block_hash"],
+            json_block["header"]["nonce"],
+            [Transaction.from_dict_to_transaction(t) for t in json_block["data"]],
+            self.__blockchain_head
+        )
+        self.__blockchain_head.append(block)
 
     """
     Save blockchain to file,
@@ -200,13 +200,13 @@ class Blockchain:
     def  __is_part_of_family(self, new_block):   
         orphan_blocks_to_add = []
         orphan_blocks_to_remove = []
+        is_parent = False
+        is_child = False
         #1. Check if new block is a parent of existing block in orphan list
         #2. Check if new block is a child of existing block in orphan list
         #3. Check if new block is a child of  block from one of orphan's family member
         #4. Check if new block is a parent of root block from one of orphan's family member
         if self.__orphan_list:
-            is_parent = False
-            is_child = False
             for orphan_head in self.__orphan_list:
                 #1
                 if orphan_head.get_previous_block() == None and \
@@ -244,7 +244,7 @@ class Blockchain:
         
 
 
-    def add_block(self, block=None, new_block=None): 
+    def add_block(self, new_block=None): 
         #1. Check if new block is parent of root block of each block in orphan list
         #2. Add new block to file
         #3. If is a parent than add all blocks from root to youngest child to file
@@ -260,22 +260,23 @@ class Blockchain:
         new_head = None
         if new_block is not None:
             #1
-            for orphan_head in self.__orphan_list:
-                orphan_block = orphan_head
-                while orphan_block is not None:
-                    if orphan_block.get_previous_block() == None:
-                        if new_block.get_hash() == orphan_block.get_header().get_previous_block_hash():
-                            self.__log.info(f"New Block is parent of root block from one/few blocks in orphan list")
-                            orphan_block.set_previous_block(new_block)
-                            orphan_blocks_to_remove.append(orphan_head)
-                            new_head = orphan_head
-                            is_parent = True
-                    orphan_block = orphan_block.get_previous_block()        
-    
+            if self.__orphan_list:
+                for orphan_head in self.__orphan_list:
+                    orphan_block = orphan_head
+                    while orphan_block is not None:
+                        if orphan_block.get_previous_block() == None:
+                            if new_block.get_hash() == orphan_block.get_header().get_previous_block_hash():
+                                self.__log.info(f"New Block is parent of root block from one/few blocks in orphan list")
+                                orphan_block.set_previous_block(new_block)
+                                orphan_blocks_to_remove.append(orphan_head)
+                                new_head = orphan_head
+                                is_parent = True
+                        orphan_block = orphan_block.get_previous_block()        
+        
             if not is_parent:
                 self.__log.info(f"Block is not a parent of any orphan blocks")
                 self.__log.info("Saving new candidate")
-                orphan_head = new_block
+                new_head = new_block
             #2
             #save new block to file    
             self.__save_one_block(new_block)
@@ -286,7 +287,6 @@ class Blockchain:
                 while new_block.get_hash() != orphan_to_blockchain.get_header().get_previous_block_hash():
                     self.__save_one_block(orphan_to_blockchain)
                 orphan_to_blockchain = orphan_to_blockchain.get_previous_block()
-
             #4
             # Remove old head if parent of new block is a head and save new head
             if new_head is not None:
@@ -313,8 +313,13 @@ class Blockchain:
             block = block.get_previous_block()
         return "Blockchain verified correctly"
 
-    def get_blockchain_head(self):
+    def get_blockchain_head_list(self):
         return self.__blockchain_head
+
+    def get_blockchain_head(self):
+        # self.__log.info("Get blockchain head xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+        longest_blockchain = self.__get_longest_blockchain()
+        return longest_blockchain
 
     def get_orphan_list(self):
         return self.__orphan_list
@@ -329,3 +334,17 @@ class Blockchain:
             count += 1
             current_block = current_block.get_previous_block()
         return {"count": count}
+
+    def __get_longest_blockchain(self):
+        head_and_count = {}
+        count = 0
+        block_head = self.__blockchain_head
+        for head in block_head:
+            current_block = head
+            while current_block is not None:
+                count += 1
+                current_block = current_block.get_previous_block()
+            head_and_count[head] = count
+        longest_blockchain = max(head_and_count, key = head_and_count.get)
+        # self.__log.info(f"Get longest blockchain xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx {longest_blockchain.to_dict()}")
+        return longest_blockchain
