@@ -51,9 +51,9 @@ class Miner:
             self.__log.error(f'Error appending transaction: {e}')
         return "Transaction appended"
 
-    def init_addition_of_candidate(self,block_dict):
+    def init_addition_of_candidate(self, block):
         self.__stop_miner_process()
-        duplicated_transaction = self.__filter_transaction_pool(block_dict)
+        duplicated_transaction = self.__filter_transaction_pool(block)
         return duplicated_transaction
 
     def __filter_transaction_pool(self, block_dict):
