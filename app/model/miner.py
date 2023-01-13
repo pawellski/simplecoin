@@ -53,7 +53,8 @@ class Miner:
 
     def init_addition_of_candidate(self, block):
         self.__stop_miner_process()
-        duplicated_transaction = self.__filter_transaction_pool(block)
+        # duplicated_transaction = self.__filter_transaction_pool(block)
+        duplicated_transaction = True
         return duplicated_transaction
 
     def __filter_transaction_pool(self, block_dict):
@@ -207,7 +208,7 @@ class Miner:
                         continue
 
                     self.__broadcast_candidate(candidate)
-                    self.__blockchain.add_block(block=candidate)
+                    self.__blockchain.add_block(candidate)
                     self.__reset_miner_process(
                         candidate.get_data().get_transactions()
                     )
