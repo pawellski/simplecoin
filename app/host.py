@@ -103,7 +103,12 @@ def get_block_count():
     message, status = node.get_block_count()
     return make_response(message, status)
 
-@app.route('/view')
-def visualize():
-    tree_struct = node.visualize()
+@app.route('/view-blockchain')
+def visualize_blockchain():
+    tree_struct = node.visualize_blockchain()
+    return render_template('template.html', tree_struct=json.dumps(tree_struct)) 
+
+@app.route('/view-orphan-list')
+def visualize_orphan_list():
+    tree_struct = node.visualize_orphan_list()
     return render_template('template.html', tree_struct=json.dumps(tree_struct))    

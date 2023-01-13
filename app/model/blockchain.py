@@ -24,7 +24,7 @@ class Blockchain:
     """
     def __get_blockchain(self):
         # read blockchain from file
-        self.__read_blockchain()
+        # self.__read_blockchain()
         # if file not contain blockchain, genesis block will be created
         if not self.__blockchain_head:
             self.__log.info("Create first block...")
@@ -143,6 +143,7 @@ class Blockchain:
             while block_from_blockchain is not None:
                 if block.get_header().get_previous_block_hash() == block_from_blockchain.get_hash():
                     self.__log.info(f"Block has parent")
+                    block.set_previous_block(block_from_blockchain)
                     return False
                 # change reference to verified block in direction of the beginning
                 block_from_blockchain = block_from_blockchain.get_previous_block()
@@ -160,20 +161,13 @@ class Blockchain:
             )
 
             if self.__valid_block(block):
-                is_orphan = self.__is_orphan_block(block) 
-                return True, is_orphan
+                is_orphan = self.__is_orphan_block(block)
+                return True, is_orphan, block
             else:
-                return False, False
+                return False, False, block
 
-    def add_to_orphan_list(self, block_dict):
-        if block_dict is not None:
-            block = Block(
-                previous_block_hash=block_dict['header']['previous_block_hash'],
-                transactions=[Transaction.from_dict_to_transaction(t) for t in block_dict['data']],
-                nonce=block_dict['header']['nonce'],
-                previous_block=None
-            )
-
+    def add_to_orphan_list(self, block):
+        if block is not None:
             has_family, is_parent, is_child, orphan_blocks_to_add, orphan_blocks_to_remove = self.__is_part_of_family(block)
             if has_family:
                 for block_to_add in orphan_blocks_to_add:
@@ -233,14 +227,15 @@ class Blockchain:
                             orphan_blocks_to_remove.append(orphan_block)
                             return True, is_parent, is_child, orphan_blocks_to_add, orphan_blocks_to_remove
                         return True, is_parent, is_child, orphan_blocks_to_add, orphan_blocks_to_remove
-                    orphan_block = orphan_block.get_previous_block()
                 #4
-                    if orphan_block == None:
+                    if orphan_block.get_previous_block() == None:
                         if new_block.get_hash() == orphan_block.get_header().get_previous_block_hash():
                             self.__log.info(f"New OrphanBlock is parent of root block from one block in orphan list")
                             orphan_block.set_previous_block(new_block)
                             is_parent = True
                             return True, is_parent, is_child, orphan_blocks_to_add, orphan_blocks_to_remove
+
+                    orphan_block = orphan_block.get_previous_block()        
 
         self.__log.info(f"New OrphanBlock doesnt have family in orphan list")
         return False, is_parent, is_child, orphan_blocks_to_add, orphan_blocks_to_remove
@@ -249,27 +244,60 @@ class Blockchain:
         
 
 
-    def add_block(self, block=None, block_dict=None): #check_block
+    def add_block(self, block=None, new_block=None): 
+        #1. Check if new block is parent of root block of each block in orphan list
+        #2. Add new block to file
+        #3. If is a parent than add all blocks from root to youngest child to file
+        #4. If new block is not a parent it is automaticaly a new head of blockchain, if new block is a parent his youngest childs are heads
+        #       (removing old head if his parent was a head)
+        #5. If is a parent than remove orphan_head from orphan list
+        
+        orphan_blocks_to_remove = []
+        is_parent = False
         new_time = time()
         self.__log.info(f'New candidate await time: {new_time - self.__time}')
         self.__time = new_time
-        if block_dict is not None:
-            block = Block(
-                previous_block_hash=block_dict['header']['previous_block_hash'],
-                transactions=[Transaction.from_dict_to_transaction(t) for t in block_dict['data']],
-                nonce=block_dict['header']['nonce'],
-                previous_block=None
-            )
+        new_head = None
+        if new_block is not None:
+            #1
+            for orphan_head in self.__orphan_list:
+                orphan_block = orphan_head
+                while orphan_block is not None:
+                    if orphan_block.get_previous_block() == None:
+                        if new_block.get_hash() == orphan_block.get_header().get_previous_block_hash():
+                            self.__log.info(f"New Block is parent of root block from one/few blocks in orphan list")
+                            orphan_block.set_previous_block(new_block)
+                            orphan_blocks_to_remove.append(orphan_head)
+                            new_head = orphan_head
+                            is_parent = True
+                    orphan_block = orphan_block.get_previous_block()        
+    
+            if not is_parent:
+                self.__log.info(f"Block is not a parent of any orphan blocks")
+                self.__log.info("Saving new candidate")
+                orphan_head = new_block
+            #2
+            #save new block to file    
+            self.__save_one_block(new_block)
+            #3
+            #save to file all childs of new block
+            for block_to_remove in orphan_blocks_to_remove:
+                orphan_to_blockchain = block_to_remove.get_previous_block()
+                while new_block.get_hash() != orphan_to_blockchain.get_header().get_previous_block_hash():
+                    self.__save_one_block(orphan_to_blockchain)
+                orphan_to_blockchain = orphan_to_blockchain.get_previous_block()
 
-        self.__log.info("Saving new candidate")
-        # add new block (head) to blockchain if validation is correct
-        # self.__log.info("New candidate validated")
+            #4
+            # Remove old head if parent of new block is a head and save new head
+            if new_head is not None:
+                if new_block.get_previous_block() in self.__blockchain_head:
+                    self.__blockchain_head.remove(new_block.get_previous_block())
+                self.__blockchain_head.append(new_head)    
+            #5
+            for block_to_remove in orphan_blocks_to_remove:
+                self.__orphan_list.remove(block_to_remove)
 
-        #logika dodania nowego bloku do blockchainu
-        block.set_previous_block(self.__blockchain_head)
-        self.__blockchain_head = block
-        self.__save_one_block(block)
-
+        return 
 
     """
     Verify blockchain block by block,
@@ -287,6 +315,9 @@ class Blockchain:
 
     def get_blockchain_head(self):
         return self.__blockchain_head
+
+    def get_orphan_list(self):
+        return self.__orphan_list
 
     def get_previous_block(self, block):
         return block.get_previous_block()
