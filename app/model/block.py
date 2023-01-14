@@ -25,10 +25,10 @@ class Block:
     Return block as a dictionary with two
     important keys - header and data
     """
-    def to_dict(self):
+    def to_dict(self, key_as_hex=False):
         block = {}
-        block['header'] = self.__header.to_dict()
-        block['data'] = self.__data.to_dict()
+        block['header'] = self.__header.to_dict(key_as_hex)
+        block['data'] = self.__data.to_dict(key_as_hex)
         return block
 
     """
@@ -60,10 +60,11 @@ class Block:
         """
         Return header as a dictionary
         """
-        def to_dict(self):
+        def to_dict(self, key_as_hex=False):
             header = {}
-            header['previous_block_hash'] = self.__previous_block_hash
-            header['nonce'] = self.__nonce
+            if not key_as_hex:
+                header['previous_block_hash'] = self.__previous_block_hash
+                header['nonce'] = self.__nonce
             return header
 
     class Data:
@@ -82,5 +83,5 @@ class Block:
         def clear_transactions(self):
             self.__transactions = []
 
-        def to_dict(self):
-            return [t.to_dict(True) for t in self.__transactions]
+        def to_dict(self, key_as_hex=False):
+            return [t.to_dict(True, key_as_hex) for t in self.__transactions]

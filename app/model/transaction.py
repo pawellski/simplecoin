@@ -42,10 +42,10 @@ class Transaction:
     """
     Get list of inputs object to dict
     """
-    def __get_inputs_to_dict(self):
+    def __get_inputs_to_dict(self, key_as_hex=False):
         inputs = []
         for i in self.__inputs:
-            inputs.append(i.to_dict())
+            inputs.append(i.to_dict(key_as_hex))
         return inputs
 
     def get_id(self):
@@ -82,14 +82,14 @@ class Transaction:
     If include_signature parameter is False,
     the signature field will be skipped
     """
-    def to_dict(self, include_signature=False):
+    def to_dict(self, include_signature=False, key_as_hex=False):
         transaction = {}
         transaction['id'] = self.__id
         transaction['is_coinbase'] = self.__is_coinbase
-        transaction['inputs'] = self.__get_inputs_to_dict()
-        transaction['output'] = self.__output.to_dict()
+        transaction['inputs'] = self.__get_inputs_to_dict(key_as_hex)
+        transaction['output'] = self.__output.to_dict(key_as_hex)
         transaction['fee'] = self.__fee
-        if include_signature is True:
+        if include_signature is True and not key_as_hex:
             transaction['signature'] = self.__signature
         return transaction
 
@@ -106,10 +106,14 @@ class Transaction:
         """
         Return Output as a dictionary
         """
-        def to_dict(self):
+        def to_dict(self, key_as_hex=False):
             output = {}
-            output['new_owner'] = self.__new_owner
-            output['current_owner'] = self.__current_owner
+            if key_as_hex:
+                output['new_owner'] = hex(int.from_bytes(self.__new_owner.encode(), 'big'))[150:155]
+                output['current_owner'] = hex(int.from_bytes(self.__current_owner.encode(), 'big'))[150:155]
+            else:
+                output['new_owner'] = self.__new_owner
+                output['current_owner'] = self.__current_owner
             output['new_amount'] = self.__new_amount
             output['current_amount'] = self.__current_amount
             return output
@@ -138,10 +142,13 @@ class Transaction:
         """
         Return Input as a dictionary
         """
-        def to_dict(self):
+        def to_dict(self, key_as_hex=False):
             input = {}
             input['previous_id'] = self.__previous_id
-            input['current_owner'] = self.__current_owner
+            if key_as_hex:
+                input['current_owner'] = hex(int.from_bytes(self.__current_owner.encode(), 'big'))[150:155]
+            else:
+                input['current_owner'] = self.__current_owner
             input['amount'] = self.__amount
             return input
 
