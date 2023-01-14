@@ -300,7 +300,7 @@ class Blockchain:
             #3
             for head in self.__blockchain_head:
                 if new_block.get_header().get_previous_block_hash() == head.get_hash():
-                    self.__log.info(f"Head block list is updating")
+                    self.__log.info(f"Head blocks list is being updated")
                     head_blocks_to_remove.append(head)
             self.__blockchain_head.append(new_head) 
             
@@ -339,9 +339,12 @@ class Blockchain:
     def get_previous_block(self, block):
         return block.get_previous_block()
 
-    def get_block_count(self):
+    def get_block_count(self, concrete_branch_head=None):
         count = 0
-        current_block = self.get_blockchain_head()
+        if concrete_branch_head is not None:
+            current_block = concrete_branch_head
+        else:
+            current_block = self.get_blockchain_head()
         while current_block is not None:
             count += 1
             current_block = current_block.get_previous_block()
@@ -371,14 +374,16 @@ class Blockchain:
         blockchain_head = self.__blockchain_head
         for head in blockchain_head:
             block = head
+            count = self.get_block_count(head)['count'] - 1
             while block is not None:
-                message = 'Block head' if block == head else 'Block'
+                message = 'Block head' if block == head else f"Block {count}"
                 item = {'name': block.get_hash(), 
                         'manager': block.get_header().get_previous_block_hash(),
                         'toolTip': '',
                         'body': block.to_dict(True), 
                         'message': message if block.get_previous_block() != None else 'Genesis block'
                         }
+                count -= 1        
                 tree_struct.append(item)        
                 block = block.get_previous_block()
         return tree_struct
@@ -391,14 +396,16 @@ class Blockchain:
         orphan_list_head = self.__orphan_list
         for head in orphan_list_head:
             block = head
+            count = self.get_block_count(head)['count'] - 1
             while block is not None:
-                message = 'Orphan block head' if block == head else 'Orphan block'
+                message = 'Orphan block head' if block == head else f"Orphan block {count}"
                 item = {'name': block.get_hash(),
                         'manager': block.get_header().get_previous_block_hash(),
                         'toolTip': '',
                         'body': block.to_dict(True), 
                         'message': message if block.get_previous_block() != None else 'Orphan root block'
                         }
+                count -= 1    
                 tree_struct.append(item)        
                 block = block.get_previous_block()
         return tree_struct
