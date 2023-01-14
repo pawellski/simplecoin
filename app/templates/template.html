@@ -13,9 +13,7 @@
         data.addColumn("string", "Name");
         data.addColumn("string", "Manager");
         data.addColumn("string", "ToolTip");
-        let a = '{{ tree_struct|safe }}'
-        // b = a.split("\\n", '')
-        const parsed = JSON.parse(a);
+        const parsed = JSON.parse('{{ tree_struct|safe }}');
         const rows = parsed.map(row => {
           const name = {
             v: row.name,

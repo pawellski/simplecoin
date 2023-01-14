@@ -135,7 +135,11 @@ class Blockchain:
                 self.__log.error(f"Candidate does not meet target requirements, hash: {block.get_hash()} target: {self.__target}")
                 return False
         return True
-
+    
+    '''
+    Searching of candidate's parent
+    Checking if any of blocks' hash in blockchain is a previous block hash of candidate block
+    '''
     def __is_orphan_block(self, block):                       
         for head in self.__blockchain_head:
             block_from_blockchain = head
@@ -150,7 +154,9 @@ class Blockchain:
         self.__log.info(f"Block is orphan")
         return True
 
-
+    '''
+    Validation if hash(block) meets expected target and if it is correct than checking if block is an orphan
+    '''
     def check_block(self, block_dict=None):
         if block_dict is not None:
             block = Block(
@@ -165,9 +171,14 @@ class Blockchain:
                 return True, is_orphan, block
             else:
                 return False, False, block
-
+    '''
+    Steps of addition a new block to orphan list:
+    1. Check if block has a family in orphan list
+    2. Check if new block is a parent and child at the same time - check parent of head and root block
+    '''
     def add_to_orphan_list(self, block):
         if block is not None:
+            #1
             has_family, is_parent, is_child, orphan_blocks_to_add, orphan_blocks_to_remove = self.__is_part_of_family(block)
             if has_family:
                 for block_to_add in orphan_blocks_to_add:
@@ -175,8 +186,7 @@ class Blockchain:
                             
                 for block_to_remove in orphan_blocks_to_remove:
                     self.__orphan_list.remove(block_to_remove)
-
-                #5. Check if new block is a parent and child - check parent of head and root block
+            #2
                 if is_parent and is_child:
                     orphan_blocks_to_remove = []
                     for orphan_head in self.__orphan_list:
@@ -186,10 +196,10 @@ class Blockchain:
                                 orphan_blocks_to_remove.append(orphan_head)
                                 break
                             while orphan_block is not None:
-                                orphan_block = orphan_block.get_previous_block()
                                 if orphan_block.get_previous_block() == None:
                                     if orphan_head.get_hash() == orphan_block.get_header().get_previous_block_hash():
                                         orphan_blocks_to_remove.append(orphan_head)                        
+                                orphan_block = orphan_block.get_previous_block()
 
                     for block_to_remove in orphan_blocks_to_remove:
                         self.__orphan_list.remove(block_to_remove)
@@ -197,15 +207,19 @@ class Blockchain:
             else:
                 self.__orphan_list.append(block)
 
+    '''
+    Steps of checking if block is a family member:
+    1. Check if new block is a parent of existing block in orphan list
+    2. Check if new block is a child of existing block in orphan list
+    3. Check if new block is a child of block from one of orphan's family member
+    4. Check if new block is a parent of root block from one of orphan's family member
+    '''
     def  __is_part_of_family(self, new_block):   
         orphan_blocks_to_add = []
         orphan_blocks_to_remove = []
         is_parent = False
         is_child = False
-        #1. Check if new block is a parent of existing block in orphan list
-        #2. Check if new block is a child of existing block in orphan list
-        #3. Check if new block is a child of  block from one of orphan's family member
-        #4. Check if new block is a parent of root block from one of orphan's family member
+
         if self.__orphan_list:
             for orphan_head in self.__orphan_list:
                 #1
@@ -240,18 +254,15 @@ class Blockchain:
         self.__log.info(f"New OrphanBlock doesnt have family in orphan list")
         return False, is_parent, is_child, orphan_blocks_to_add, orphan_blocks_to_remove
 
-        # [WRONG] 5. Check if new block is a parent of block from one of orphan's family member  
-        
-
-
-    def add_block(self, new_block=None): 
-        #1. Check if new block is parent of root block of each block in orphan list
-        #2. Add new block to file
-        #3. If is a parent than add all blocks from root to youngest child to file
-        #4. If new block is not a parent it is automaticaly a new head of blockchain, if new block is a parent his youngest childs are heads
-        #       (removing old head if his parent was a head)
-        #5. If is a parent than remove orphan_head from orphan list
-        
+    '''
+    Steps of addition the new block to blockchain:
+    1. Check if new block is parent of root block of each block in orphan list
+    2. Add new block to file and if is a parent than add all blocks, from root to youngest child, to file 
+    3. If new block is not a parent it is automatically a new head of blockchain, 
+        if new block is a parent his youngest childs are heads (removing old head if his parent was a head and save new head)
+    4. If is a parent than remove orphan_head, which is his youngest family member, from orphan list
+    '''
+    def add_block(self, new_block=None):
         orphan_blocks_to_remove = []
         is_parent = False
         new_time = time()
@@ -272,32 +283,26 @@ class Blockchain:
                                 new_head = orphan_head
                                 is_parent = True
                         orphan_block = orphan_block.get_previous_block()        
-        
+
             if not is_parent:
                 self.__log.info(f"Block is not a parent of any orphan blocks")
                 self.__log.info("Saving new candidate")
                 new_head = new_block
             #2
-            #save new block to file    
             self.__save_one_block(new_block)
-            #3
-            #save to file all childs of new block
             for block_to_remove in orphan_blocks_to_remove:
                 orphan_to_blockchain = block_to_remove.get_previous_block()
                 while new_block.get_hash() != orphan_to_blockchain.get_header().get_previous_block_hash():
                     self.__save_one_block(orphan_to_blockchain)
                 orphan_to_blockchain = orphan_to_blockchain.get_previous_block()
-            #4
-            # Remove old head if parent of new block is a head and save new head
+            #3
             if new_head is not None:
                 if new_block.get_previous_block() in self.__blockchain_head:
                     self.__blockchain_head.remove(new_block.get_previous_block())
                 self.__blockchain_head.append(new_head)    
-            #5
+            #4
             for block_to_remove in orphan_blocks_to_remove:
                 self.__orphan_list.remove(block_to_remove)
-
-        return 
 
     """
     Verify blockchain block by block,
@@ -317,7 +322,6 @@ class Blockchain:
         return self.__blockchain_head
 
     def get_blockchain_head(self):
-        # self.__log.info("Get blockchain head xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
         longest_blockchain = self.__get_longest_blockchain()
         return longest_blockchain
 
@@ -335,6 +339,9 @@ class Blockchain:
             current_block = current_block.get_previous_block()
         return {"count": count}
 
+    '''
+    Return currently the longest branch of blockchain
+    '''
     def __get_longest_blockchain(self):
         head_and_count = {}
         count = 0
@@ -346,5 +353,42 @@ class Blockchain:
                 current_block = current_block.get_previous_block()
             head_and_count[head] = count
         longest_blockchain = max(head_and_count, key = head_and_count.get)
-        # self.__log.info(f"Get longest blockchain xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx {longest_blockchain.to_dict()}")
         return longest_blockchain
+    
+    '''
+    Get all branches from blockchain's heads and visualize it on website
+    '''
+    def visualize_blockchain(self):
+        tree_struct = []
+        blockchain_head = self.__blockchain_head
+        for head in blockchain_head:
+            block = head
+            while block is not None:
+                item = {'name': block.get_hash(), 
+                        'manager': block.get_header().get_previous_block_hash(),
+                        'toolTip': '',
+                        'body': block.to_dict(True), 
+                        'message': 'Block' if block.get_previous_block() != None else 'Genesis block'
+                        }
+                tree_struct.append(item)        
+                block = block.get_previous_block()
+        return tree_struct
+    
+    '''
+    Get all branches from orphan's heads and visualize it on website
+    '''
+    def visualize_orphan_list(self):
+        tree_struct = []
+        orphan_list_head = self.__orphan_list
+        for head in orphan_list_head:
+            block = head
+            while block is not None:
+                item = {'name': block.get_hash(),
+                        'manager': block.get_header().get_previous_block_hash(),
+                        'toolTip': '',
+                        'body': block.to_dict(True), 
+                        'message': 'Orphan block' if block.get_previous_block() != None else 'Orphan block head'
+                        }
+                tree_struct.append(item)        
+                block = block.get_previous_block()
+        return tree_struct
