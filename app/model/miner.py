@@ -70,7 +70,7 @@ class Miner:
     '''
     def reset_miner_after_new_candidate_request(self, is_orphan):
         if not is_orphan:
-                self.__log.info("New block added, resetting miner")
+                self.__log.info("New block added to blockchain, resetting miner")
                 self.__reset_miner_process(
                     self.__blockchain
                         .get_blockchain_head()
@@ -78,6 +78,7 @@ class Miner:
                         .get_transactions()
                 )
         else:
+            self.__log.info("New block added to orphan list, resetting miner")
             self.__reset_miner_process()
 
     '''
@@ -161,7 +162,7 @@ class Miner:
 
         # Get diff between current transaction pool and new block transactions
         if new_block_transactions is not None:
-            self.__log.debug("New block added - updating transaction pool")
+            self.__log.debug("Updating transaction pool")
             self.__transaction_pool = \
                 [t for t in self.__transaction_pool
                  if not (t in new_block_transactions)]
