@@ -148,11 +148,11 @@ class Blockchain:
                 if block.get_header().get_previous_block_hash() == block_from_blockchain.get_hash():
                     self.__log.info(f"Block has parent")
                     block.set_previous_block(block_from_blockchain)
-                    return False
+                    return False, block
                 # change reference to verified block in direction of the beginning
                 block_from_blockchain = block_from_blockchain.get_previous_block()
         self.__log.info(f"Block is orphan")
-        return True
+        return True, block
 
     '''
     Validation if hash(block) meets expected target and if it is correct than checking if block is an orphan
@@ -167,8 +167,9 @@ class Blockchain:
             )
 
             if self.__valid_block(block):
-                is_orphan = self.__is_orphan_block(block)
-                return True, is_orphan, block
+                self.__log.info(f"Block is valid")
+                is_orphan, block_after_check = self.__is_orphan_block(block)
+                return True, is_orphan, block_after_check
             else:
                 return False, False, block
     '''
@@ -262,8 +263,9 @@ class Blockchain:
         if new block is a parent his youngest childs are heads (removing old head if his parent was a head and save new head)
     4. If is a parent than remove orphan_head, which is his youngest family member, from orphan list
     '''
-    def add_block(self, new_block=None):
+    def add_block(self, new_block):
         orphan_blocks_to_remove = []
+        head_blocks_to_remove = []
         is_parent = False
         new_time = time()
         self.__log.info(f'New candidate await time: {new_time - self.__time}')
@@ -286,9 +288,9 @@ class Blockchain:
 
             if not is_parent:
                 self.__log.info(f"Block is not a parent of any orphan blocks")
-                self.__log.info("Saving new candidate")
                 new_head = new_block
             #2
+            self.__log.info("Saving new candidate")
             self.__save_one_block(new_block)
             for block_to_remove in orphan_blocks_to_remove:
                 orphan_to_blockchain = block_to_remove.get_previous_block()
@@ -296,10 +298,16 @@ class Blockchain:
                     self.__save_one_block(orphan_to_blockchain)
                 orphan_to_blockchain = orphan_to_blockchain.get_previous_block()
             #3
-            if new_head is not None:
-                if new_block.get_previous_block() in self.__blockchain_head:
-                    self.__blockchain_head.remove(new_block.get_previous_block())
-                self.__blockchain_head.append(new_head)    
+            for head in self.__blockchain_head:
+                if new_block.get_header().get_previous_block_hash() == head.get_hash():
+                    self.__log.info(f"Head block list is updating")
+                    head_blocks_to_remove.append(head)
+            self.__blockchain_head.append(new_head) 
+            
+            self.__log.info(f"NUMBER OF HEADS before update = {len(self.__blockchain_head)}")
+            for block_to_remove in head_blocks_to_remove:
+                self.__blockchain_head.remove(block_to_remove)
+            self.__log.info(f"NUMBER OF HEADS after update = {len(self.__blockchain_head)}") 
             #4
             for block_to_remove in orphan_blocks_to_remove:
                 self.__orphan_list.remove(block_to_remove)
@@ -364,11 +372,12 @@ class Blockchain:
         for head in blockchain_head:
             block = head
             while block is not None:
+                message = 'Block head' if block == head else 'Block'
                 item = {'name': block.get_hash(), 
                         'manager': block.get_header().get_previous_block_hash(),
                         'toolTip': '',
                         'body': block.to_dict(True), 
-                        'message': 'Block' if block.get_previous_block() != None else 'Genesis block'
+                        'message': message if block.get_previous_block() != None else 'Genesis block'
                         }
                 tree_struct.append(item)        
                 block = block.get_previous_block()
@@ -383,11 +392,12 @@ class Blockchain:
         for head in orphan_list_head:
             block = head
             while block is not None:
+                message = 'Orphan block head' if block == head else 'Orphan block'
                 item = {'name': block.get_hash(),
                         'manager': block.get_header().get_previous_block_hash(),
                         'toolTip': '',
                         'body': block.to_dict(True), 
-                        'message': 'Orphan block' if block.get_previous_block() != None else 'Orphan block head'
+                        'message': message if block.get_previous_block() != None else 'Orphan root block'
                         }
                 tree_struct.append(item)        
                 block = block.get_previous_block()
