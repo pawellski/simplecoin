@@ -121,7 +121,6 @@ class Blockchain:
             return False
         return True
 
-
     """
     Return True if block is correctly
     otherwise return False
@@ -148,11 +147,11 @@ class Blockchain:
                 if block.get_header().get_previous_block_hash() == block_from_blockchain.get_hash():
                     self.__log.info(f"Block has parent")
                     block.set_previous_block(block_from_blockchain)
-                    return False, block
+                    return False
                 # change reference to verified block in direction of the beginning
                 block_from_blockchain = block_from_blockchain.get_previous_block()
         self.__log.info(f"Block is orphan")
-        return True, block
+        return True
 
     '''
     Validation if hash(block) meets expected target and if it is correct than checking if block is an orphan
@@ -168,10 +167,12 @@ class Blockchain:
 
             if self.__valid_block(block):
                 self.__log.info(f"Block is valid")
-                is_orphan, block_after_check = self.__is_orphan_block(block)
-                return True, is_orphan, block_after_check
+                is_orphan = self.__is_orphan_block(block)
+                return True, is_orphan, block
             else:
                 return False, False, block
+        return False, False, None
+
     '''
     Steps of addition a new block to orphan list:
     1. Check if block has a family in orphan list
@@ -193,9 +194,6 @@ class Blockchain:
                     for orphan_head in self.__orphan_list:
                         for el in self.__orphan_list:
                             orphan_block = el
-                            if orphan_head.get_hash() == orphan_block.get_header().get_previous_block_hash():
-                                orphan_blocks_to_remove.append(orphan_head)
-                                break
                             while orphan_block is not None:
                                 if orphan_block.get_previous_block() == None:
                                     if orphan_head.get_hash() == orphan_block.get_header().get_previous_block_hash():
@@ -210,10 +208,9 @@ class Blockchain:
 
     '''
     Steps of checking if block is a family member:
-    1. Check if new block is a parent of existing block in orphan list
-    2. Check if new block is a child of existing block in orphan list
-    3. Check if new block is a child of block from one of orphan's family member
-    4. Check if new block is a parent of root block from one of orphan's family member
+    1. Check if new block is a child of existing block in orphan list
+    2. Check if new block is a child of block from one of orphan's family member
+    3. Check if new block is a parent of root block from one of orphan's family member
     '''
     def  __is_part_of_family(self, new_block):   
         orphan_blocks_to_add = []
@@ -223,14 +220,7 @@ class Blockchain:
 
         if self.__orphan_list:
             for orphan_head in self.__orphan_list:
-                #1
-                if orphan_head.get_previous_block() == None and \
-                    new_block.get_hash() == orphan_head.get_header().get_previous_block_hash():
-                    self.__log.info(f"New OrphanBlock is parent of block in orphan list")
-                    orphan_block.set_previous_block(new_block)
-                    is_parent = True
-                    continue
-                #2, 3
+                #1, 2
                 orphan_block = orphan_head
                 while orphan_block is not None:
                     if new_block.get_header().get_previous_block_hash() == orphan_block.get_hash():
@@ -242,7 +232,7 @@ class Blockchain:
                             orphan_blocks_to_remove.append(orphan_block)
                             return True, is_parent, is_child, orphan_blocks_to_add, orphan_blocks_to_remove
                         return True, is_parent, is_child, orphan_blocks_to_add, orphan_blocks_to_remove
-                #4
+                #3
                     if orphan_block.get_previous_block() == None:
                         if new_block.get_hash() == orphan_block.get_header().get_previous_block_hash():
                             self.__log.info(f"New OrphanBlock is parent of root block from one block in orphan list")
@@ -270,7 +260,7 @@ class Blockchain:
         new_time = time()
         self.__log.info(f'New candidate await time: {new_time - self.__time}')
         self.__time = new_time
-        new_head = None
+        new_head_list = []
         if new_block is not None:
             #1
             if self.__orphan_list:
@@ -282,13 +272,13 @@ class Blockchain:
                                 self.__log.info(f"New Block is parent of root block from one/few blocks in orphan list")
                                 orphan_block.set_previous_block(new_block)
                                 orphan_blocks_to_remove.append(orphan_head)
-                                new_head = orphan_head
+                                new_head_list.append(orphan_head)
                                 is_parent = True
                         orphan_block = orphan_block.get_previous_block()        
 
             if not is_parent:
                 self.__log.info(f"Block is not a parent of any orphan blocks")
-                new_head = new_block
+                new_head_list.append(new_block)
             #2
             self.__log.info("Saving new candidate")
             self.__save_one_block(new_block)
@@ -302,7 +292,10 @@ class Blockchain:
                 if new_block.get_header().get_previous_block_hash() == head.get_hash():
                     self.__log.info(f"Head blocks list is being updated")
                     head_blocks_to_remove.append(head)
-            self.__blockchain_head.append(new_head) 
+                    break
+                
+            for new_head in new_head_list:    
+                self.__blockchain_head.append(new_head) 
             
             self.__log.info(f"NUMBER OF HEADS before update = {len(self.__blockchain_head)}")
             for block_to_remove in head_blocks_to_remove:
