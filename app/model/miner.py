@@ -62,7 +62,7 @@ class Miner:
     Filtration transaction pool - removing from transaction pool transactions that are in new block
     '''
     def __filter_transaction_pool(self, block_dict):
-        transactions_from_new_candidate=[Transaction.from_dict_to_transaction(t) for t in block_dict['data']],
+        transactions_from_new_candidate=[Transaction.from_dict_to_transaction(t) for t in block_dict['data']]
         self.__transaction_pool = [transaction for transaction in self.__transaction_pool if not transaction in transactions_from_new_candidate]
 
     '''
