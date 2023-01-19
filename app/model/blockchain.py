@@ -217,6 +217,7 @@ class Blockchain:
         orphan_blocks_to_remove = []
         is_parent = False
         is_child = False
+        is_part_of_family = False
 
         if self.__orphan_list:
             for orphan_head in self.__orphan_list:
@@ -227,23 +228,23 @@ class Blockchain:
                         self.__log.info(f"New OrphanBlock has parent in orphan list")
                         new_block.set_previous_block(orphan_block)
                         orphan_blocks_to_add.append(new_block)
+                        is_part_of_family = True
                         is_child = True
                         if orphan_block == orphan_head:
                             orphan_blocks_to_remove.append(orphan_block)
-                            return True, is_parent, is_child, orphan_blocks_to_add, orphan_blocks_to_remove
-                        return True, is_parent, is_child, orphan_blocks_to_add, orphan_blocks_to_remove
+                        break   
                 #3
                     if orphan_block.get_previous_block() == None:
                         if new_block.get_hash() == orphan_block.get_header().get_previous_block_hash():
                             self.__log.info(f"New OrphanBlock is parent of root block from one block in orphan list")
                             orphan_block.set_previous_block(new_block)
+                            is_part_of_family = True
                             is_parent = True
-                            return True, is_parent, is_child, orphan_blocks_to_add, orphan_blocks_to_remove
-
                     orphan_block = orphan_block.get_previous_block()        
+            return is_part_of_family, is_parent, is_child, orphan_blocks_to_add, orphan_blocks_to_remove
 
         self.__log.info(f"New OrphanBlock doesnt have family in orphan list")
-        return False, is_parent, is_child, orphan_blocks_to_add, orphan_blocks_to_remove
+        return is_part_of_family, is_parent, is_child, orphan_blocks_to_add, orphan_blocks_to_remove
 
     '''
     Steps of addition the new block to blockchain:
