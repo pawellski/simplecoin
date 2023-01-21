@@ -29,6 +29,8 @@ class Block:
         block = {}
         block['header'] = self.__header.to_dict(key_as_hex)
         block['data'] = self.__data.to_dict(key_as_hex)
+        if key_as_hex is True:
+            block['header']['hash'] = self.get_hash()
         return block
 
     """
@@ -62,8 +64,8 @@ class Block:
         """
         def to_dict(self, key_as_hex=False):
             header = {}
+            header['previous_block_hash'] = self.__previous_block_hash
             if not key_as_hex:
-                header['previous_block_hash'] = self.__previous_block_hash
                 header['nonce'] = self.__nonce
             return header
 

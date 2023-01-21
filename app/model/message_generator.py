@@ -77,7 +77,7 @@ class MessageGenerator():
 
         result, ip = self.__requests_transaction_broadcast(body)
         if not result:
-            raise Exception(f"Error broadcasting transaction to {ip}")    
+            self.__log.error(f"Error broadcasting transaction to {ip} - empty result")
         else:
             self.__log.info(f"Successfully broadcasted transaction")
 
@@ -90,7 +90,6 @@ class MessageGenerator():
         for el in self.__key_manager.get_pub_key_list()['entries']:
             res = self.__request_transaction_broadcast(el['ip'], request_data)
             if not res:
-                self.__log.info(f"Transaction broadcast process failed")
                 return False, el['ip']
         return True, None
 

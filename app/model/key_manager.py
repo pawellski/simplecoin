@@ -105,7 +105,7 @@ class KeyManager:
     """
     Searching public key via ip
     """
-    def __get_pub_key_for_ip(self, ip_without_port):
+    def get_pub_key_for_ip(self, ip_without_port):
         for entry in self.__pub_key_list['entries']:
             if ip_without_port in entry['ip']:
                 return entry['pub_key']
@@ -159,7 +159,7 @@ class KeyManager:
     Verification of message sender
     """
     def __verify_sender(self, ip, signed_message, message):
-        pub_key = self.__get_pub_key_for_ip(ip)
+        pub_key = self.get_pub_key_for_ip(ip)
         return self.verify_signature(pub_key, signed_message, message)
 
     def verify_signature(self, pub_key, signed_message, message):

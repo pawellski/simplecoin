@@ -11,8 +11,11 @@ import json
 OK = 200
 ERROR = 400
 
-DIFFICULTY_BITS = 17 #19
+# genesis block generated for 19 zeros
+DIFFICULTY_BITS = 17
 MINER_REWARD = 0.005
+PROBABILITY_OF_ACCEPTANCE = 0.8
+IP_PREFIX = '172.16.238.10'
 
 class Node:
     def __init__(self, secret, files_path, log):
@@ -20,8 +23,9 @@ class Node:
         self.__blockchain = Blockchain(files_path, log, DIFFICULTY_BITS)
         self.__wallet = Wallet(self.__key_manager, self.__blockchain, log)
         self.__message_generator = MessageGenerator(log, self.__key_manager, self.__wallet)
-        self.__miner = Miner(log, DIFFICULTY_BITS, self.__blockchain, self.__key_manager, self.__wallet, MINER_REWARD)
+        self.__miner = Miner(log, DIFFICULTY_BITS, self.__blockchain, self.__key_manager, self.__wallet, MINER_REWARD, PROBABILITY_OF_ACCEPTANCE)
         self.__current_candidate = None
+        self.__log = log
 
     def get_pub_key_list(self):
         return json.dumps(self.__key_manager.get_pub_key_list()), OK
@@ -110,20 +114,16 @@ class Node:
         self.__miner.stop_miner()
         return "Miner paused", OK
 
-    def get_current_balance(self):
-        balance = json.dumps({'current_balance': self.__wallet.check_balance()})
+    def get_current_balance(self, id):
+        pub_key = self.__key_manager.get_pub_key_for_ip(IP_PREFIX + id)
+        if pub_key is None:
+            balance = json.dumps({'current_balance': 100})
+        else:
+            balance = json.dumps({'current_balance': self.__wallet.check_balance(pub_key)})
         return balance, OK
 
     def __verify_and_save_candidate(self):
-        request_data = self.__current_candidate
-        block_valid, is_orphan, block = self.__blockchain.check_block(block_dict=request_data)  #DONE
-        if block_valid:
-            self.__miner.init_addition_of_candidate(block_dict=request_data)                    #DONE
-            if is_orphan:           
-                self.__blockchain.add_to_orphan_list(block)                                     #DONE
-            else:
-                self.__blockchain.add_block(block)                                              #DONE
-            self.__miner.reset_miner_after_new_candidate_request(is_orphan)                     #TODO - create candidate block with filtrated transaction 
+        self.__miner.verify_and_save_candidate(self.__current_candidate)
 
     def get_block_count(self):
         count = self.__blockchain.get_block_count()

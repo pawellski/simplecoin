@@ -294,24 +294,27 @@ class Blockchain:
                     self.__log.info(f"Head blocks list is being updated")
                     head_blocks_to_remove.append(head)
                     break
-                
+
+            bc_len_before = len(self.__blockchain_head)
             for new_head in new_head_list:    
                 self.__blockchain_head.append(new_head) 
-            
-            self.__log.info(f"NUMBER OF HEADS before update = {len(self.__blockchain_head)}")
+
             for block_to_remove in head_blocks_to_remove:
                 self.__blockchain_head.remove(block_to_remove)
-            self.__log.info(f"NUMBER OF HEADS after update = {len(self.__blockchain_head)}") 
+            bc_len_after = len(self.__blockchain_head)
+            if bc_len_before != bc_len_before:
+                self.__log.info(f"Number of created new branches = {bc_len_after-bc_len_before}")
             #4
             for block_to_remove in orphan_blocks_to_remove:
                 self.__orphan_list.remove(block_to_remove)
+        return new_head_list
 
     """
     Verify blockchain block by block,
     verification bases on __valid_blockchain function
     """
     def verify_blockchain(self):
-        block = self.__blockchain_head
+        block = self.get_blockchain_head()
         # verify every block from head to genesis block
         while block is not None:
             if self.__valid_blockchain(block, block.get_previous_block()) is False:
@@ -348,7 +351,7 @@ class Blockchain:
     Return currently the longest branch of blockchain
     '''
     def __get_longest_blockchain(self):
-        head_and_count = {}
+        head_len_dict = {}
         count = 0
         block_head = self.__blockchain_head
         for head in block_head:
@@ -356,10 +359,23 @@ class Blockchain:
             while current_block is not None:
                 count += 1
                 current_block = current_block.get_previous_block()
-            head_and_count[head] = count
-        longest_blockchain = max(head_and_count, key = head_and_count.get)
-        return longest_blockchain
-    
+            head_len_dict[head] = count
+        head_hash_dict = {}
+        max_number_of_blocks = max(head_len_dict.values())
+        for head, value in head_len_dict.items():
+            if value == max_number_of_blocks:
+                head_hash_dict[head] = head.get_hash()
+        return min(head_hash_dict, key = head_hash_dict.get)
+
+    def __transaction_already_exist(self, transaction):
+        block = self.__get_longest_blockchain()
+        while block is not None:
+            for t in block.get_data().get_transactions():
+                if transaction.get_id() == t.get_id():
+                    return True
+            block = block.get_previous_block()
+        return False
+
     '''
     Get all branches from blockchain's heads and visualize it on website
     '''

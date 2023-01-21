@@ -60,8 +60,8 @@ class Wallet:
     """
     Return own current balance
     """
-    def check_balance(self):
-        unspent_outputs = self.get_unspent_outputs()
+    def check_balance(self, pub_key=None):
+        unspent_outputs = self.get_unspent_outputs(pub_key)
         balance = 0.0
         for amount in unspent_outputs.values():
             balance += amount
