@@ -10,7 +10,7 @@ from model.wallet import Wallet
 from model.block import Block
 from model.blockchain import Blockchain
 from model.key_manager import KeyManager
-
+from random import uniform
 
 class Miner:
     def __init__(
@@ -20,7 +20,8 @@ class Miner:
         blockchain: Blockchain,
         key_manager: KeyManager,
         wallet: Wallet,
-        worker_income: int
+        worker_income: int,
+        probability_of_acceptance: float
     ):
         self.__log = log
         self.__transaction_pool = []
@@ -35,11 +36,14 @@ class Miner:
         self.__miner_thread_running = False
         self.__wallet = wallet
         self.__worker_income = worker_income
+        self.__probability_of_acceptance = probability_of_acceptance
 
     def append_transaction(
         self,
         transaction_dict: dict
     ):
+        if self.__should_accept() is False:
+            return "Transaction ignored"
         self.__log.debug("Appending trasaction")
         try:
             transaction = Transaction.from_dict_to_transaction(
@@ -51,19 +55,74 @@ class Miner:
             self.__log.error(f'Error appending transaction: {e}')
         return "Transaction appended"
 
+    def verify_and_save_candidate(self, candidate_dict):
+        if self.__should_accept() is False:
+            return
+        block_valid, is_orphan, block = self.__blockchain.check_block(candidate_dict)
+        if block_valid:
+            self.__remove_just_added_transactions(block_dict=candidate_dict)
+            new_transactions = self.__handle_new_candidate_request(is_orphan, block)
+            self.__transaction_pool.extend(new_transactions)
+            self.reset_miner_after_new_candidate_request(is_orphan)
+
+    def __handle_new_candidate_request(self, is_orphan, block):
+        transactions = set()
+        if is_orphan:
+            self.__blockchain.add_to_orphan_list(block)
+        else:
+            previous_longest_head = self.__blockchain.get_blockchain_head()
+            new_heads = self.__blockchain.add_block(block)
+            new_longest_head = self.__blockchain.get_blockchain_head()
+            # check if one of new branches became the main branches
+            # if yes, remove it from list of heads for transactions extraction
+            # also add previous longest branch to list - we need to extract all current valid transactions
+            if new_longest_head.get_hash() != previous_longest_head.get_hash():
+                new_heads.remove(new_longest_head)
+                if self.__check_if_appended_to_previous_longest_head(previous_longest_head, new_longest_head) is False:
+                    new_heads.append(previous_longest_head)
+            transactions = self.__filter_transaction(new_longest_head, new_heads, block)
+        return transactions
+
+    def __check_if_appended_to_previous_longest_head(self, previous_head, head):
+        while head is not None:
+            if head.get_hash() == previous_head.get_hash():
+                return True
+            head = head.get_previous_block()
+        return False
+
+    def __extract_transactions(self, head, parent=None):
+        transactions = set()
+        processed_block = head
+        while processed_block is not None:
+            if parent is not None and processed_block.get_hash() == parent.get_hash():
+                break
+            for t in processed_block.get_data().get_transactions():
+                if t.is_coinbase() is False or parent is None:
+                    transactions.add(t)
+            processed_block = processed_block.get_previous_block()
+        return transactions
+
+    def __filter_transaction(self, main_head, new_heads, block):
+        transactions = set()
+        for head in new_heads:
+            transactions.union(self.__extract_transactions(block, head))
+        main_transactions = self.__extract_transactions(main_head)
+        return transactions.difference(main_transactions)
+
     '''
-    Initialization of addition a new candidate to blockchain/orphan list
+    Remove transaction from transaction pool which are
+    contained by a new candidate to blockchain/orphan list
     '''
-    def init_addition_of_candidate(self, block_dict):
+    def __remove_just_added_transactions(self, block_dict):
         self.__stop_miner_process()
-        self.__filter_transaction_pool(block_dict)
+        transactions_from_new_candidate = [Transaction.from_dict_to_transaction(t) for t in block_dict['data']]
+        self.__filter_transaction_pool(transactions_from_new_candidate)
 
     '''
     Filtration transaction pool - removing from transaction pool transactions that are in new block
     '''
-    def __filter_transaction_pool(self, block_dict):
-        transactions_from_new_candidate=[Transaction.from_dict_to_transaction(t) for t in block_dict['data']]
-        self.__transaction_pool = [transaction for transaction in self.__transaction_pool if not transaction in transactions_from_new_candidate]
+    def __filter_transaction_pool(self, transactions):
+        self.__transaction_pool = [transaction for transaction in self.__transaction_pool if not transaction in transactions]
 
     '''
     Update head block after new candidate gets appended
@@ -97,6 +156,9 @@ class Miner:
         self.__stop_miner_process()
         self.__miner_thread_running = False
         self.__miner_thread.join()
+
+    def __should_accept(self):
+        return uniform(0, 1) <= self.__probability_of_acceptance
 
     '''
     Send new candidate to nodes in the network
@@ -162,10 +224,7 @@ class Miner:
 
         # Get diff between current transaction pool and new block transactions
         if new_block_transactions is not None:
-            self.__log.debug("Updating transaction pool")
-            self.__transaction_pool = \
-                [t for t in self.__transaction_pool
-                 if not (t in new_block_transactions)]
+            self.__filter_transaction_pool(new_block_transactions)
 
         self.__miner_paused = False
 
@@ -220,7 +279,7 @@ class Miner:
             block_transactions = current_block.get_data().get_transactions()
             for block_transaction in block_transactions:
                 if block_transaction.get_id() == transaction.get_id():
-                    self.__log.error("Transaction ID not unique")
+                    self.__log.debug("Transaction ID not unique")
                     return False
             current_block = current_block.get_previous_block()
         return True
@@ -234,7 +293,7 @@ class Miner:
         previous_inputs: list
     ):
         if len(transaction.get_inputs()) == 0:
-            self.__log.error(f"Error - empty list for transaction "
+            self.__log.debug(f"Error - empty list for transaction "
                              f"{transaction.get_id()}")
             return False
 
@@ -248,7 +307,7 @@ class Miner:
                     [i.get_previous_id() for i in 
                      previous_inputs.get(transaction_pub_key, [])]
             ):
-                self.__log.error(
+                self.__log.debug(
                     f"Input with id {input.get_previous_id()} "
                     f"has already been spent in previous mined transactions"
                 )
@@ -256,7 +315,7 @@ class Miner:
             if (
                 input.get_previous_id() not in unspent_outputs.keys()
             ):
-                self.__log.error(
+                self.__log.debug(
                     f"Input with id {input.get_previous_id()} "
                     f"has already been spent in previous block "
                     f"{input.get_amount()}"
@@ -282,7 +341,7 @@ class Miner:
         )
 
         if expected_amount != total_amount:
-            self.__log.error(
+            self.__log.debug(
                 f"Inputs amount {total_amount} " 
                 f"does not match expected amount {expected_amount}")
             return False
@@ -376,7 +435,7 @@ class Miner:
         target = 2 ** (256-self.__difficulty_bits)
 
         if len(transactions) == 0:
-            self.__log.error('Filtered transaction list is empty')
+            self.__log.debug('Filtered transaction list is empty')
             self.__miner_result_queue.put(False)
             return
 

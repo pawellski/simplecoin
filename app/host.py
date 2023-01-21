@@ -92,9 +92,9 @@ def stop_mining():
     return make_response(message, status)
 
 
-@app.route('/current-balance', methods=[GET])
-def get_current_balance():
-    message, status = node.get_current_balance()
+@app.route('/current-balance/<id>', methods=[GET])
+def get_current_balance(id):
+    message, status = node.get_current_balance(id)
     return make_response(message, status)
 
 
