@@ -21,7 +21,7 @@ class Miner:
         key_manager: KeyManager,
         wallet: Wallet,
         worker_income: int,
-        probability_of_acceptance: float
+        probability_of_candidate_broadcast: float
     ):
         self.__log = log
         self.__transaction_pool = []
@@ -36,14 +36,12 @@ class Miner:
         self.__miner_thread_running = False
         self.__wallet = wallet
         self.__worker_income = worker_income
-        self.__probability_of_acceptance = probability_of_acceptance
+        self.__probability_of_candidate_broadcast = probability_of_candidate_broadcast
 
     def append_transaction(
         self,
         transaction_dict: dict
     ):
-        if self.__should_accept() is False:
-            return "Transaction ignored"
         self.__log.debug("Appending trasaction")
         try:
             transaction = Transaction.from_dict_to_transaction(
@@ -56,17 +54,15 @@ class Miner:
         return "Transaction appended"
 
     def verify_and_save_candidate(self, candidate_dict):
-        if self.__should_accept() is False:
-            return
         block_valid, is_orphan, block = self.__blockchain.check_block(candidate_dict)
         if block_valid:
             self.__remove_just_added_transactions(block_dict=candidate_dict)
             new_transactions = self.__handle_new_candidate_request(is_orphan, block)
-            self.__transaction_pool.extend(new_transactions)
+            self.__transaction_pool = new_transactions + self.__transaction_pool
             self.reset_miner_after_new_candidate_request(is_orphan)
 
     def __handle_new_candidate_request(self, is_orphan, block):
-        transactions = set()
+        transactions = []
         if is_orphan:
             self.__blockchain.add_to_orphan_list(block)
         else:
@@ -77,6 +73,7 @@ class Miner:
             # if yes, remove it from list of heads for transactions extraction
             # also add previous longest branch to list - we need to extract all current valid transactions
             if new_longest_head.get_hash() != previous_longest_head.get_hash():
+                self.__log.debug(f"Blockchain master branch has been dethroned")
                 new_heads.remove(new_longest_head)
                 if self.__check_if_appended_to_previous_longest_head(previous_longest_head, new_longest_head) is False:
                     new_heads.append(previous_longest_head)
@@ -91,23 +88,26 @@ class Miner:
         return False
 
     def __extract_transactions(self, head, parent=None):
-        transactions = set()
+        transactions = []
         processed_block = head
         while processed_block is not None:
+            current_block_transactions = []
             if parent is not None and processed_block.get_hash() == parent.get_hash():
                 break
             for t in processed_block.get_data().get_transactions():
                 if t.is_coinbase() is False or parent is None:
-                    transactions.add(t)
+                    current_block_transactions.append(t)
+            transactions = current_block_transactions + transactions
             processed_block = processed_block.get_previous_block()
         return transactions
 
     def __filter_transaction(self, main_head, new_heads, block):
-        transactions = set()
+        transactions = []
         for head in new_heads:
-            transactions.union(self.__extract_transactions(block, head))
+            head_transactions = self.__extract_transactions(block, head)
+            transactions = [t for t in head_transactions if t not in transactions] + transactions
         main_transactions = self.__extract_transactions(main_head)
-        return transactions.difference(main_transactions)
+        return [t for t in transactions if t not in main_transactions]
 
     '''
     Remove transaction from transaction pool which are
@@ -129,13 +129,8 @@ class Miner:
     '''
     def reset_miner_after_new_candidate_request(self, is_orphan):
         if not is_orphan:
-                self.__log.info("New block added to blockchain, resetting miner")
-                self.__reset_miner_process(
-                    self.__blockchain
-                        .get_blockchain_head()
-                        .get_data()
-                        .get_transactions()
-                )
+            self.__log.info("New block added to blockchain, resetting miner")
+            self.__reset_miner_process()
         else:
             self.__log.info("New block added to orphan list, resetting miner")
             self.__reset_miner_process()
@@ -158,12 +153,15 @@ class Miner:
         self.__miner_thread.join()
 
     def __should_accept(self):
-        return uniform(0, 1) <= self.__probability_of_acceptance
+        return uniform(0, 1) <= self.__probability_of_candidate_broadcast
 
     '''
     Send new candidate to nodes in the network
     '''
     def __broadcast_candidate(self, candidate: Block):
+        if self.__should_accept() is False:
+            self.__log.debug("Skipping broadcast of new candidate block")
+            return
         self.__log.debug("Broadcasting new candidate block")
         for el in self.__key_manager.get_pub_key_list()['entries']:
 
