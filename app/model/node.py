@@ -14,7 +14,8 @@ ERROR = 400
 # genesis block generated for 19 zeros
 DIFFICULTY_BITS = 17
 MINER_REWARD = 0.005
-PROBABILITY_OF_ACCEPTANCE = 0.8
+PROBABILITY_OF_TRANSACTION_BROADCAST = 0.8
+PROBABILITY_OF_CANDIDATE_BROADCAST = 0.8
 IP_PREFIX = '172.16.238.10'
 
 class Node:
@@ -22,8 +23,8 @@ class Node:
         self.__key_manager = KeyManager(secret, files_path, log)
         self.__blockchain = Blockchain(files_path, log, DIFFICULTY_BITS)
         self.__wallet = Wallet(self.__key_manager, self.__blockchain, log)
-        self.__message_generator = MessageGenerator(log, self.__key_manager, self.__wallet)
-        self.__miner = Miner(log, DIFFICULTY_BITS, self.__blockchain, self.__key_manager, self.__wallet, MINER_REWARD, PROBABILITY_OF_ACCEPTANCE)
+        self.__message_generator = MessageGenerator(log, self.__key_manager, self.__wallet, PROBABILITY_OF_TRANSACTION_BROADCAST)
+        self.__miner = Miner(log, DIFFICULTY_BITS, self.__blockchain, self.__key_manager, self.__wallet, MINER_REWARD, PROBABILITY_OF_CANDIDATE_BROADCAST)
         self.__current_candidate = None
         self.__log = log
 

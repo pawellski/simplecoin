@@ -8,17 +8,19 @@ import logging
 import random
 import threading
 import time
+from random import uniform
 from model.transaction_tuples import OutputTuple
 
 DEFAULT_INTERVAL = 5
 FEE = 0.002
 class MessageGenerator():
-    def __init__(self, log, key_manager, wallet):
+    def __init__(self, log, key_manager, wallet, probability):
         self.__generator_thread = None
         self.__log = log
         self.__key_manager = key_manager 
         self.__wallet = wallet  
         self.__generator_active = False
+        self.__probability_of_transaction_broadcast = probability
           
     """
     Start generator by requesting to endpoint /start-generator
@@ -71,7 +73,10 @@ class MessageGenerator():
     Broadcast ganerated transaction to others
     Call method to make requests
     """
-    def __broadcast_transaction(self, transaction):    
+    def __broadcast_transaction(self, transaction):
+        if self.__should_broadcast() is False:
+            self.__log.debug("Skipping transaction broadcast")
+            return
 
         body = transaction.to_dict(True) 
 
@@ -129,3 +134,6 @@ class MessageGenerator():
         except Exception as e:
             self.__log.error(f"Transaction generation failed, reason: {e}")
             return None
+
+    def __should_broadcast(self):
+        return uniform(0, 1) <= self.__probability_of_transaction_broadcast
